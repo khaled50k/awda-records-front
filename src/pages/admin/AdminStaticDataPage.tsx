@@ -71,7 +71,7 @@ export const AdminStaticDataPage: React.FC = () => {
     if (!editingItem) return;
     
     try {
-      await dispatch(updateStaticDataAsync({ id: editingItem.id, recordData: data })).unwrap();
+      await dispatch(updateStaticDataAsync({ id: editingItem.id, data })).unwrap();
       setIsFormOpen(false);
       setEditingItem(null);
       setFormData({ type: '', code: '', label_en: '', label_ar: '', description: '', is_active: true, metadata: {} });
@@ -108,22 +108,7 @@ export const AdminStaticDataPage: React.FC = () => {
     }
   };
 
-  const handleToggleStatus = async (id: number) => {
-    try {
-      await dispatch(toggleStaticDataStatusAsync(id)).unwrap();
-      dispatch(getStaticDataListAsync({ page: 1, perPage: pagination.perPage }));
-      toast({
-        title: "تم تحديث الحالة بنجاح",
-        description: "تم تغيير حالة العنصر",
-      });
-    } catch (error) {
-      toast({
-        title: "خطأ في تحديث الحالة",
-        description: "حدث خطأ أثناء تغيير الحالة",
-        variant: "destructive",
-      });
-    }
-  };
+
 
   const columns = [
     {
@@ -171,16 +156,8 @@ export const AdminStaticDataPage: React.FC = () => {
         </div>
       ),
     },
-    {
-      key: 'description',
-      label: 'الوصف',
-      exportable: true,
-      render: (_: unknown, record: StaticData) => (
-        <div className="max-w-xs truncate text-sm text-muted-foreground">
-          {record.description || 'لا يوجد وصف'}
-        </div>
-      ),
-    },
+  
+    
     {
       key: 'is_active',
       label: 'الحالة',
@@ -235,15 +212,7 @@ export const AdminStaticDataPage: React.FC = () => {
           >
             <Edit className="w-4 h-4" />
           </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => handleToggleStatus(record.id)}
-            className="text-orange-600 hover:text-orange-700 hover:bg-orange-50"
-            title="تغيير الحالة"
-          >
-            <Settings className="w-4 h-4" />
-          </Button>
+        
           <Button
             variant="ghost"
             size="sm"

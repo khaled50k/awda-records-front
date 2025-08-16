@@ -118,9 +118,6 @@ const getTransferStatusBadge = (transfer: RecordTransfer): JSX.Element => {
 const StatsCards: React.FC<{ summary: TransferStats }> = ({ summary }) => {
   const statItems = [
     { label: 'إجمالي التحويلات', value: summary.total, color: 'text-primary' },
-    { label: 'في الانتظار', value: summary.pending, color: 'text-yellow-500' },
-    { label: 'تم الرد', value: summary.replied, color: 'text-purple-500' },
-    { label: 'مكتمل', value: summary.completed, color: 'text-green-500' },
   ];
 
   return (
