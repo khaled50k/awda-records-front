@@ -7,6 +7,7 @@ import {
   User 
 } from '../types/api';
 import Cookies from 'js-cookie';
+import { log } from 'console';
 
 // Authentication Service
 export class AuthService {
@@ -26,9 +27,12 @@ export class AuthService {
   async login(credentials: AdminLoginRequest): Promise<AdminLoginResponse> {
     try {
       const response = await apiService.post<AdminLoginResponse>('/login', credentials);
-      
+      console.log(response.data);
+
       if (response.success && response.data) {
         // Store only token, user data will be fetched when needed
+        console.log(response.data.token);
+        
         this.setToken(response.data.token);
         return response.data;
       } else {
@@ -108,14 +112,14 @@ export class AuthService {
   }
 
   // Set token
-  setToken(token: string): void {
-    // Set cookie to expire in 7 days, secure in production
+  setToken = (token: string): void => {
     Cookies.set(this.tokenKey, token, { 
       expires: 7, 
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict'
+      secure: window.location.protocol === 'https:',
+      sameSite: 'lax' // works for local network/IP
     });
-  }
+  };
+  
 
 
 

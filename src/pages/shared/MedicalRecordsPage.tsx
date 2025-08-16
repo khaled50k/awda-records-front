@@ -452,7 +452,7 @@ const RecordFormDialog: React.FC<FormDialogProps> = ({
             <SearchablePatientInput
               value={form.patient_id}
               onChange={(value) => setForm({ ...form, patient_id: value || 0 })}
-              placeholder="البحث بالاسم أو الرقم الوطني..."
+              placeholder="البحث بالاسم أو رقم الهوية..."
             />
           </div>
 
@@ -663,7 +663,7 @@ const ViewRecordModal: React.FC<ViewRecordModalProps> = ({ isOpen, onOpenChange,
                 </div>
               </div>
               <div>
-                <Label className="text-sm font-medium text-gray-600">الرقم الوطني</Label>
+                <Label className="text-sm font-medium text-gray-600">رقم الهوية</Label>
                 <div className="mt-1 p-2 bg-gray-50 rounded border">
                   <span className="font-mono">{record.patient?.national_id || 'غير محدد'}</span>
                 </div>
@@ -951,6 +951,7 @@ export const MedicalRecordsPage: React.FC<MedicalRecordsPageProps> = ({ userRole
     {
       key: 'patient.full_name',
       label: 'اسم المريض',
+      exportable: true,
       render: (_: unknown, record: MedicalRecord) => (
         <div className="flex items-center space-x-2 space-x-reverse">
           <User className="w-4 h-4 text-muted-foreground" />
@@ -961,6 +962,7 @@ export const MedicalRecordsPage: React.FC<MedicalRecordsPageProps> = ({ userRole
     {
       key: 'transfers.recipient.full_name',
       label: 'اسم المستلم',
+      exportable: true,
       render: (_: unknown, record: MedicalRecord) => {
         const latestTransfer = record.transfers && record.transfers.length > 0 
           ? record.transfers[record.transfers.length - 1] 
@@ -979,6 +981,7 @@ export const MedicalRecordsPage: React.FC<MedicalRecordsPageProps> = ({ userRole
     {
       key: 'status.label_ar',
       label: 'حالة السجل',
+      exportable: true,
       render: (_: unknown, record: MedicalRecord) => (
         <div className="flex items-center space-x-2 space-x-reverse">
           <Badge className="bg-blue-100 text-blue-800 text-xs px-2 py-1">
@@ -990,6 +993,7 @@ export const MedicalRecordsPage: React.FC<MedicalRecordsPageProps> = ({ userRole
     {
       key: 'problem_type.label_ar',
       label: 'نوع المشكلة',
+      exportable: true,
       render: (_: unknown, record: MedicalRecord) => (
         <div className="flex items-center space-x-2 space-x-reverse">
           <Badge className="bg-purple-100 text-purple-800 text-xs px-2 py-1">
@@ -999,8 +1003,9 @@ export const MedicalRecordsPage: React.FC<MedicalRecordsPageProps> = ({ userRole
       ),
     },
     {
-      key: 'health_center_type.label_ar',
+      key: 'health_center.label_ar',
       label: 'مركز الرعاية الصحية',
+      exportable: true,
       render: (_: unknown, record: MedicalRecord) => (
         <div className="flex items-center space-x-2 space-x-reverse">
           <Badge className="bg-green-100 text-green-800 text-xs px-2 py-1">
@@ -1012,11 +1017,13 @@ export const MedicalRecordsPage: React.FC<MedicalRecordsPageProps> = ({ userRole
     {
       key: 'created_at',
       label: 'تاريخ الإنشاء',
+      exportable: true,
       render: (_: unknown, record: MedicalRecord) => formatDate(record.created_at),
     },
     {
       key: 'actions',
       label: 'الإجراءات',
+      exportable: false,
       render: (_: unknown, record: MedicalRecord) => (
         <div className="flex items-center space-x-2 space-x-reverse">
          {userRole === 'admin' && (
@@ -1047,9 +1054,9 @@ export const MedicalRecordsPage: React.FC<MedicalRecordsPageProps> = ({ userRole
     },
     {
       key: 'patient_national_id',
-      label: 'الرقم الوطني',
+      label: 'رقم الهوية',
       type: 'text' as const,
-      placeholder: 'أدخل الرقم الوطني'
+      placeholder: 'أدخل رقم الهوية'
     },
     {
       key: 'patient_gender',
@@ -1115,30 +1122,13 @@ export const MedicalRecordsPage: React.FC<MedicalRecordsPageProps> = ({ userRole
     },
     // Transfer filters
     {
-      key: 'has_transfers',
-      label: 'لديه تحويلات',
-      type: 'select' as const,
-      options: [
-        { value: 'true', label: 'نعم' },
-        { value: 'false', label: 'لا' }
-      ]
-    },
-    {
       key: 'transfer_notes',
       label: 'ملاحظات التحويل',
       type: 'text' as const,
       placeholder: 'البحث في ملاحظات التحويل'
     },
     // Advanced filters
-    {
-      key: 'has_completed_workflow',
-      label: 'مكتمل في سير العمل',
-      type: 'select' as const,
-      options: [
-        { value: 'true', label: 'نعم' },
-        { value: 'false', label: 'لا' }
-      ]
-    }
+
   ];
 
   // Custom filter renderer for date fields
@@ -1201,17 +1191,9 @@ export const MedicalRecordsPage: React.FC<MedicalRecordsPageProps> = ({ userRole
       params.modifiedTo = filters.modified_to;
     }
     
-    // Transfer filters
-    if (filters.has_transfers !== undefined) {
-      params.hasTransfers = filters.has_transfers === 'true';
-    }
+ 
     if (filters.transfer_notes) {
       params.transferNotes = filters.transfer_notes;
-    }
-    
-    // Advanced filters
-    if (filters.has_completed_workflow !== undefined) {
-      params.hasCompletedWorkflow = filters.has_completed_workflow === 'true';
     }
     
     // Dispatch the action with mapped parameters

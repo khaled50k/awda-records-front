@@ -30,7 +30,7 @@ interface SearchablePatientInputProps {
 const SearchablePatientInput: React.FC<SearchablePatientInputProps> = ({
   value,
   onChange,
-  placeholder = "البحث بالاسم أو الرقم الوطني...",
+  placeholder = "البحث بالاسم أو رقم الهوية...",
   patients,
   disabled = false
 }) => {
@@ -496,13 +496,13 @@ export const CreateMedicalRecordPage: React.FC = () => {
                 <SearchablePatientInput
                   value={formData.patient_id || null}
                   onChange={(value) => setFormData({ ...formData, patient_id: value || 0 })}
-                  placeholder="البحث بالاسم أو الرقم الوطني..."
+                  placeholder="البحث بالاسم أو رقم الهوية..."
                   patients={patients}
                   disabled={false}
                 />
                                  <p className="text-sm text-muted-foreground flex items-center space-x-2 space-x-reverse">
                    <User className="w-4 h-4" />
-                   <span>اختر المريض من القائمة أو ابحث بالاسم أو الرقم الوطني</span>
+                   <span>اختر المريض من القائمة أو ابحث بالاسم أو رقم الهوية</span>
                  </p>
                  <div className="flex items-center justify-between">
                    <p className="text-xs text-muted-foreground">

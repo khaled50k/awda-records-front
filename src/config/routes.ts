@@ -1,4 +1,4 @@
-import { Home, Users, Heart, FileText, Send, User, Settings } from 'lucide-react';
+import { Home, Users, Heart, FileText, Send, User, Settings, Database } from 'lucide-react';
 
 // Simple role definitions
 export const ROLES = {
@@ -29,6 +29,7 @@ export const ROUTES = {
   ADMIN_MEDICAL_RECORDS: '/admin/medical-records',
   ADMIN_MEDICAL_RECORDS_CREATE: '/admin/medical-records/create',
   ADMIN_TRANSFERS: '/admin/transfers',
+  ADMIN_STATIC_DATA: '/admin/static-data',
   ADMIN_PROFILE: '/admin/profile',
   ADMIN_SETTINGS: '/admin/settings'
 } as const;
@@ -52,6 +53,14 @@ const routes: Route[] = [
     adminOnly: true
   },
   {
+    path: ROUTES.ADMIN_STATIC_DATA,
+    label: 'البيانات الثابتة',
+    icon: Database,
+    roles: [ROLES.ADMIN],
+    protected: true,
+    adminOnly: true
+  },
+  {
     path: ROUTES.ADMIN_PATIENTS,
     label: 'إدارة المرضى',
     icon: Heart,
@@ -67,7 +76,6 @@ const routes: Route[] = [
     protected: true,
     adminOnly: false
   },
-
   {
     path: ROUTES.ADMIN_TRANSFERS,
     label: 'إدارة التحويلات',
@@ -76,8 +84,6 @@ const routes: Route[] = [
     protected: true,
     adminOnly: false
   },
-  
-
 ];
 
 // Simple utility functions

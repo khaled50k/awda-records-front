@@ -674,6 +674,7 @@ export const TransfersPage: React.FC<TransfersPageProps> = ({ userRole }) => {
     {
       key: 'medical_record.patient.full_name',
       label: 'اسم المريض',
+      exportable: true,
       render: (_: unknown, record: RecordTransfer) => {
         const isForCurrentUser = user?.user?.username === record.recipient?.username && user?.user?.role_code === 'admin';
         
@@ -689,6 +690,7 @@ export const TransfersPage: React.FC<TransfersPageProps> = ({ userRole }) => {
     {
       key: 'sender.full_name',
       label: 'المرسل',
+      exportable: true,
       render: (_: unknown, record: RecordTransfer) => {
         const isForCurrentUser = user?.user?.username === record.recipient?.username && user?.user?.role_code === 'admin';
         
@@ -704,6 +706,7 @@ export const TransfersPage: React.FC<TransfersPageProps> = ({ userRole }) => {
     {
       key: 'recipient.full_name',
       label: 'المستلم',
+      exportable: true,
       render: (_: unknown, record: RecordTransfer) => {
         const isForCurrentUser = user?.user?.username === record.recipient?.username && user?.user?.role_code === 'admin';
         
@@ -718,8 +721,9 @@ export const TransfersPage: React.FC<TransfersPageProps> = ({ userRole }) => {
     },
 
     {
-      key: 'status',
+      key: 'medical_record.status.label_ar',
       label: 'الحالة',
+      exportable: true,
       render: (_: unknown, record: RecordTransfer) => {
         const isForCurrentUser = user?.user?.username === record.recipient?.username && user?.user?.role_code === 'admin';
         
@@ -735,8 +739,9 @@ export const TransfersPage: React.FC<TransfersPageProps> = ({ userRole }) => {
       },
     },
     {
-      key: 'transferred_at',
+      key: 'created_at',
       label: 'تاريخ الإرسال',
+      exportable: true,
       render: (_: unknown, record: RecordTransfer) => {
         const isForCurrentUser = user?.user?.username === record.recipient?.username && user?.user?.role_code  === 'admin';
         
@@ -752,6 +757,7 @@ export const TransfersPage: React.FC<TransfersPageProps> = ({ userRole }) => {
     {
       key: 'actions',
       label: 'الإجراءات',
+      exportable: false,
       render: (_: unknown, record: RecordTransfer) => (
         <TransferActions
           record={record}

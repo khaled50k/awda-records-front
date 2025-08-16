@@ -177,7 +177,7 @@ export interface StaticData {
   label_ar: string;
   description?: string;
   is_active: boolean;
-  metadata?: Record<string, unknown>;
+  metadata?: Record<string, any>;
   created_at: string;
   updated_at: string;
 }
@@ -185,6 +185,150 @@ export interface StaticData {
 export interface StaticDataGroup {
   [type: string]: StaticData[];
 }
+
+// Static Data API Types
+export interface StaticDataCreateRequest {
+  type: string;
+  code: string;
+  label_en: string;
+  label_ar: string;
+  description?: string;
+  is_active?: boolean;
+  metadata?: Record<string, any>;
+}
+
+export interface StaticDataUpdateRequest {
+  type?: string;
+  code?: string;
+  label_en?: string;
+  label_ar?: string;
+  description?: string;
+  is_active?: boolean;
+  metadata?: Record<string, any>;
+}
+
+export interface StaticDataFilters {
+  type?: string;
+  types?: string[] | string;
+  code?: string;
+  label?: string;
+  label_en?: string;
+  label_ar?: string;
+  is_active?: boolean;
+  description?: string;
+  sort_by?: 'type' | 'code' | 'label_en' | 'label_ar' | 'is_active' | 'created_at' | 'updated_at';
+  sort_order?: 'asc' | 'desc';
+  per_page?: number;
+}
+
+export interface StaticDataListResponse {
+  data: StaticData[];
+  pagination: {
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
+    from: number;
+    to: number;
+  };
+  filters_applied: Partial<StaticDataFilters>;
+  total_filtered: number;
+}
+
+export interface StaticDataTypesResponse {
+  data: string[];
+  message: string;
+}
+
+export interface StaticDataByTypeResponse {
+  data: StaticData[];
+  message: string;
+}
+
+export interface StaticDataByCodeResponse {
+  data: StaticData;
+  message: string;
+}
+
+export interface StaticDataToggleStatusResponse {
+  data: {
+    static_data: StaticData;
+  };
+  message: string;
+}
+
+export interface StaticDataBulkUpdateStatusRequest {
+  ids: number[];
+  is_active: boolean;
+}
+
+export interface StaticDataBulkUpdateStatusResponse {
+  data: {
+    updated_count: number;
+  };
+  message: string;
+}
+
+// API Endpoints
+export const STATIC_DATA_API = {
+  // List all static data with filtering
+  LIST: '/static-data',
+  
+  // Get all unique types
+  TYPES: '/static-data/types',
+  
+  // Get static data by ID
+  SHOW: (id: number) => `/static-data/${id}`,
+  
+  // Create new static data
+  CREATE: '/static-data',
+  
+  // Update static data
+  UPDATE: (id: number) => `/static-data/${id}`,
+  
+  // Delete static data
+  DELETE: (id: number) => `/static-data/${id}`,
+  
+  // Toggle active status
+  TOGGLE_STATUS: (id: number) => `/static-data/${id}/toggle-status`,
+  
+  // Bulk update status
+  BULK_UPDATE_STATUS: '/static-data/bulk-update-status',
+  
+  // Get by type
+  GET_BY_TYPE: (type: string) => `/static-data/type/${type}`,
+  
+  // Get by type and code
+  GET_BY_CODE: (type: string, code: string) => `/static-data/type/${type}/code/${code}`,
+} as const;
+
+// Common static data types
+export const STATIC_DATA_TYPES = {
+  ROLE: 'role',
+  GENDER: 'gender',
+  HEALTH_CENTER: 'health_center',
+  STATUS: 'status',
+  PROBLEM_TYPE: 'problem_type',
+  } as const;
+
+export type StaticDataType = typeof STATIC_DATA_TYPES[keyof typeof STATIC_DATA_TYPES];
+
+// Utility functions
+export const getStaticDataLabel = (item: StaticData, language: 'en' | 'ar' = 'en'): string => {
+  return language === 'ar' ? item.label_ar : item.label_en;
+};
+
+export const filterStaticDataByType = (data: StaticData[], type: string): StaticData[] => {
+  return data.filter(item => item.type === type);
+};
+
+export const getStaticDataByCode = (data: StaticData[], type: string, code: string): StaticData | undefined => {
+  return data.find(item => item.type === type && item.code === code);
+};
+
+export const isStaticDataActive = (item: StaticData): boolean => {
+  return item.is_active;
+};
 
 // Authentication Types
 export interface LoginRequest {

@@ -24,44 +24,17 @@ const formatDate = (dateString: string) => {
 
 // Transfer status badge component
 const TransferStatusBadge: React.FC<{ transfer: RecordTransfer }> = ({ transfer }) => {
-  // Completed transfers take highest priority
-  if (transfer.completed_at) {
-    return (
-      <Badge className="bg-green-100 text-green-800 border-green-200 text-xs px-3 py-1">
-        <CheckCircle className="w-3 h-3 ml-1" />
-        مكتمل
-      </Badge>
-    );
-  }
 
-  // Replied transfers (received and replied but not completed)
-  if (transfer.is_replied) {
     return (
       <Badge className="bg-purple-100 text-purple-800 border-purple-200 text-xs px-3 py-1">
-        <CheckCircle className="w-3 h-3 ml-1" />
-        تم الرد
+        {transfer.medical_record?.status?.label_ar}
       </Badge>
     );
   }
 
-  // Received transfers (received but not replied and not completed)
-  if (transfer.received_at && !transfer.is_replied) {
-    return (
-      <Badge className="bg-blue-100 text-blue-800 border-blue-200 text-xs px-3 py-1">
-        <Download className="w-3 h-3" />
-        تم الاستلام
-      </Badge>
-    );
-  }
 
-  // Pending transfers (not received, not replied, not completed)
-  return (
-    <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200 text-xs px-3 py-1">
-      <Clock className="w-3 h-3 ml-1" />
-      في الانتظار
-    </Badge>
-  );
-};
+  
+
 
 // Main component
 export const ViewTransferPage: React.FC = () => {
@@ -211,7 +184,7 @@ export const ViewTransferPage: React.FC = () => {
               {/* Status Code */}
               <div className="space-y-2">
                 <p className="text-sm font-medium text-gray-600">حالة السجل</p>
-                <p className="text-lg font-semibold text-gray-900">{transfer.status_code || 'غير محدد'}</p>
+                <p className="text-lg font-semibold text-gray-900">{transfer.medical_record?.status?.label_ar || 'غير محدد'}</p>
               </div>
             </div>
 

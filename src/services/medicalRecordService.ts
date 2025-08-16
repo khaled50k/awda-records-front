@@ -71,10 +71,7 @@ export class MedicalRecordService {
     if (params.modifiedTo) searchParams.append('modified_to', params.modifiedTo);
     
     // Transfer filters
-    if (params.hasTransfers !== undefined) searchParams.append('has_transfers', params.hasTransfers.toString());
     if (params.transferNotes) searchParams.append('transfer_notes', params.transferNotes);
-    
-    // Advanced filters
     if (params.hasCompletedWorkflow !== undefined) searchParams.append('has_completed_workflow', params.hasCompletedWorkflow.toString());
     
     // Search

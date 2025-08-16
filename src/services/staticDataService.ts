@@ -2,7 +2,18 @@ import { apiService } from './api';
 import { 
   ApiResponse, 
   StaticData, 
-  StaticDataGroup 
+  StaticDataGroup,
+  StaticDataCreateRequest,
+  StaticDataUpdateRequest,
+  StaticDataFilters,
+  StaticDataListResponse,
+  StaticDataTypesResponse,
+  StaticDataByTypeResponse,
+  StaticDataByCodeResponse,
+  StaticDataToggleStatusResponse,
+  StaticDataBulkUpdateStatusRequest,
+  StaticDataBulkUpdateStatusResponse,
+  STATIC_DATA_API
 } from '../types/api';
 
 // Static Data Management Service
@@ -20,6 +31,10 @@ export class StaticDataService {
     }
     return StaticDataService.instance;
   }
+
+  // ============================================================================
+  // READ OPERATIONS
+  // ============================================================================
 
   // Get all static data (cached)
   async getStaticData(): Promise<ApiResponse<StaticDataGroup>> {
@@ -43,9 +58,31 @@ export class StaticDataService {
     return response;
   }
 
+  // Get static data with filtering and pagination
+  async getStaticDataList(filters?: StaticDataFilters): Promise<ApiResponse<StaticDataListResponse>> {
+    const params = new URLSearchParams();
+    
+    if (filters) {
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+          if (Array.isArray(value)) {
+            value.forEach(v => params.append(key, v));
+          } else {
+            params.append(key, String(value));
+          }
+        }
+      });
+    }
+
+    const queryString = params.toString();
+    const url = queryString ? `${STATIC_DATA_API.LIST}?${queryString}` : STATIC_DATA_API.LIST;
+    
+    return apiService.get<StaticDataListResponse>(url);
+  }
+
   // Get available static data types
   async getStaticDataTypes(): Promise<ApiResponse<string[]>> {
-    return apiService.get<string[]>('/static/types');
+    return apiService.get<string[]>(STATIC_DATA_API.TYPES);
   }
 
   // Get static data by type (cached)
@@ -60,7 +97,7 @@ export class StaticDataService {
       };
     }
 
-    const response = await apiService.get<StaticData[]>(`/static/${type}`);
+    const response = await apiService.get<StaticData[]>(STATIC_DATA_API.GET_BY_TYPE(type));
     
     if (response.success) {
       this.setCache(type, response.data);
@@ -71,28 +108,77 @@ export class StaticDataService {
 
   // Get specific static data by code
   async getStaticDataByCode(type: string, code: string): Promise<ApiResponse<StaticData>> {
-    return apiService.get<StaticData>(`/static/${type}/${code}`);
+    return apiService.get<StaticData>(STATIC_DATA_API.GET_BY_CODE(type, code));
   }
 
-  // Get roles (cached)
-  async getRoles(): Promise<ApiResponse<StaticData[]>> {
-    return this.getStaticDataByType('role');
+  // Get static data by ID
+  async getStaticDataById(id: number): Promise<ApiResponse<StaticData>> {
+    return apiService.get<StaticData>(STATIC_DATA_API.SHOW(id));
   }
 
-  // Get genders (cached)
-  async getGenders(): Promise<ApiResponse<StaticData[]>> {
-    return this.getStaticDataByType('gender');
+  // ============================================================================
+  // CREATE OPERATIONS
+  // ============================================================================
+
+  // Create new static data
+  async createStaticData(data: StaticDataCreateRequest): Promise<ApiResponse<StaticData>> {
+    const response = await apiService.post<StaticData>(STATIC_DATA_API.CREATE, data);
+    
+    if (response.success) {
+      // Clear cache for the type to ensure fresh data
+      this.clearCache(data.type);
+    }
+    
+    return response;
   }
 
-  // Get health center types (cached)
-  async getHealthCenterTypes(): Promise<ApiResponse<StaticData[]>> {
-    return this.getStaticDataByType('health_center_type');
+  // ============================================================================
+  // UPDATE OPERATIONS
+  // ============================================================================
+
+  // Update static data
+  async updateStaticData(id: number, data: StaticDataUpdateRequest): Promise<ApiResponse<StaticData>> {
+    const response = await apiService.put<StaticData>(STATIC_DATA_API.UPDATE(id), data);
+    
+    if (response.success) {
+      // Clear cache for the type to ensure fresh data
+      if (data.type) {
+        this.clearCache(data.type);
+      }
+    }
+    
+    return response;
   }
 
-  // Get status types (cached)
-  async getStatusTypes(): Promise<ApiResponse<StaticData[]>> {
-    return this.getStaticDataByType('status');
+  // Toggle active status
+  async toggleStaticDataStatus(id: number): Promise<ApiResponse<StaticDataToggleStatusResponse>> {
+    return apiService.patch<StaticDataToggleStatusResponse>(STATIC_DATA_API.TOGGLE_STATUS(id));
   }
+
+  // Bulk update status
+  async bulkUpdateStaticDataStatus(data: StaticDataBulkUpdateStatusRequest): Promise<ApiResponse<StaticDataBulkUpdateStatusResponse>> {
+    return apiService.patch<StaticDataBulkUpdateStatusResponse>(STATIC_DATA_API.BULK_UPDATE_STATUS, data);
+  }
+
+  // ============================================================================
+  // DELETE OPERATIONS
+  // ============================================================================
+
+  // Delete static data
+  async deleteStaticData(id: number): Promise<ApiResponse<void>> {
+    const response = await apiService.delete<void>(STATIC_DATA_API.DELETE(id));
+    
+    if (response.success) {
+      // Clear all cache since we don't know which type was affected
+      this.clearCache();
+    }
+    
+    return response;
+  }
+
+  // ============================================================================
+  // CACHE MANAGEMENT
+  // ============================================================================
 
   // Clear cache for specific type
   clearCache(type?: string): void {
@@ -147,6 +233,30 @@ export class StaticDataService {
   // Check if data is cached
   isCached(type: string): boolean {
     return this.getFromCache(type) !== null;
+  }
+
+  // ============================================================================
+  // LEGACY METHODS (for backward compatibility)
+  // ============================================================================
+
+  // Get roles (cached)
+  async getRoles(): Promise<ApiResponse<StaticData[]>> {
+    return this.getStaticDataByType('role');
+  }
+
+  // Get genders (cached)
+  async getGenders(): Promise<ApiResponse<StaticData[]>> {
+    return this.getStaticDataByType('gender');
+  }
+
+  // Get health center types (cached)
+  async getHealthCenterTypes(): Promise<ApiResponse<StaticData[]>> {
+    return this.getStaticDataByType('health_center_type');
+  }
+
+  // Get status types (cached)
+  async getStatusTypes(): Promise<ApiResponse<StaticData[]>> {
+    return this.getStaticDataByType('status');
   }
 }
 

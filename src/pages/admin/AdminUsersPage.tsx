@@ -6,9 +6,7 @@ import {
   createUserAsync,
   updateUserAsync,
   
-  searchUsersAsync,
-  setFilters, 
-  clearFilters 
+
 } from '../../store/slices/userSlice';
 import { Card, CardContent } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
@@ -53,6 +51,7 @@ const getStatusBadge = (user: UserType) => {
 
 const getRoleBadge = (roleCode: string, staticData: any) => {
   const role = staticData?.role?.find((r: any) => r.code === roleCode);
+  console.log(roleCode, staticData);
   
   if (!role) {
     return (
@@ -306,7 +305,7 @@ const UserFormDialog: React.FC<FormDialogProps> = ({
               type="email"
               value={form.email}
               onChange={(e) => setForm({ ...form, email: e.target.value })}
-              required
+      
             />
           </div>
           <div className="space-y-2">
@@ -454,6 +453,7 @@ export const AdminUsersPage: React.FC = () => {
     {
       key: 'username',
       label: 'اسم المستخدم',
+      exportable: true,
       render: (value: any, record: UserType) => (
         <div className="flex items-center space-x-2 space-x-reverse">
           <User className="w-4 h-4 text-muted-foreground" />
@@ -464,10 +464,12 @@ export const AdminUsersPage: React.FC = () => {
     {
       key: 'full_name',
       label: 'الاسم الكامل',
+      exportable: true,
     },
     {
       key: 'email',
       label: 'البريد الإلكتروني',
+      exportable: true,
       render: (value: any, record: UserType) => (
         <div className="flex items-center space-x-2 space-x-reverse">
           <Mail className="w-4 h-4 text-muted-foreground" />
@@ -476,23 +478,27 @@ export const AdminUsersPage: React.FC = () => {
       ),
     },
     {
-      key: 'role_code',
+      key: 'role.label_ar',
       label: 'الدور',
+      exportable: true,
       render: (value: any, record: UserType) => getRoleBadge(record.role_code, staticData),
     },
     {
       key: 'created_at',
       label: 'تاريخ الإنشاء',
+      exportable: true,
       render: (value: any, record: UserType) => formatDate(record.created_at),
     },
     {
       key: 'status',
       label: 'الحالة',
+      exportable: true,
       render: (value: any, record: UserType) => getStatusBadge(record),
     },
     {
       key: 'actions',
       label: 'الإجراءات',
+      exportable: false,
       render: (value: any, record: UserType) => (
         <div className="flex items-center space-x-2 space-x-reverse">
           <Button
@@ -555,52 +561,7 @@ export const AdminUsersPage: React.FC = () => {
               total: pagination.total
             }}
             onPageChange={(page) => dispatch(getUsersAsync({ page, perPage: pagination.perPage }))}
-            onFilter={(filters) => {
-              // Handle search and filters
-              const searchTerm = filters.search as string || '';
-              const roleCode = filters.role_code as string || '';
-              const isActiveStr = filters.is_active as string;
-              const isActive = isActiveStr === 'true' ? true : isActiveStr === 'false' ? false : null;
-              
-              if (searchTerm || roleCode || isActive !== null) {
-                dispatch(getUsersAsync({ 
-                  page: 1, 
-                  perPage: pagination.perPage,
-                  search: searchTerm,
-                  roleCode: roleCode,
-                  isActive: isActive
-                }));
-              } else {
-                dispatch(getUsersAsync({ page: 1, perPage: pagination.perPage }));
-              }
-            }}
-            onClearFilters={() => {
-              dispatch(getUsersAsync({ page: 1, perPage: pagination.perPage }));
-            }}
-            filterOptions={[
-              {
-                key: 'role_code',
-                label: 'الدور',
-                type: 'select',
-                options: [
-                  { value: 'all', label: 'الكل' },
-                                     ...(staticData?.role?.map((role) => ({
-                     value: role.code,
-                     label: role.label_ar
-                   })) || [])
-                ]
-              },
-              {
-                key: 'is_active',
-                label: 'الحالة',
-                type: 'select',
-                options: [
-                  { value: 'all', label: 'الكل' },
-                  { value: 'true', label: 'نشط' },
-                  { value: 'false', label: 'غير نشط' }
-                ]
-              }
-            ]}
+       
             showSearch={true}
             searchPlaceholder="البحث بالاسم أو البريد الإلكتروني..."
             searchableColumns={['full_name', 'username', 'email']}

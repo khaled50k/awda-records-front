@@ -654,6 +654,7 @@ export const PatientsPage: React.FC = () => {
     {
       key: 'full_name',
       label: 'الاسم الكامل',
+      exportable: true,
       render: (value: any, record: Patient) => (
         <div className="flex items-center space-x-2 space-x-reverse">
           <User className="w-4 h-4 text-muted-foreground" />
@@ -664,6 +665,7 @@ export const PatientsPage: React.FC = () => {
     {
       key: 'national_id',
       label: 'رقم الهوية',
+      exportable: true,
       render: (value: any, record: Patient) => (
         <div className="flex items-center space-x-2 space-x-reverse">
           <Hash className="w-4 h-4 text-muted-foreground" />
@@ -672,18 +674,21 @@ export const PatientsPage: React.FC = () => {
       ),
     },
     {
-      key: 'gender_code',
+      key: 'gender.label_ar',
       label: 'الجنس',
+      exportable: true,
       render: (value: any, record: Patient) => getGenderBadge(record.gender_code),
     },
     {
       key: 'created_at',
       label: 'تاريخ الإنشاء',
+      exportable: true,
       render: (value: any, record: Patient) => formatDate(record.created_at),
     },
     {
       key: 'actions',
       label: 'الإجراءات',
+      exportable: false,
       render: (value: any, record: Patient) => (
         <div className="flex items-center space-x-2 space-x-reverse">
           {/* View button - Only visible to admins */}

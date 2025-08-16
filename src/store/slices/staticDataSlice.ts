@@ -3,6 +3,16 @@ import { staticDataService } from '../../services/staticDataService';
 import { 
   StaticData, 
   StaticDataGroup,
+  StaticDataCreateRequest,
+  StaticDataUpdateRequest,
+  StaticDataFilters,
+  StaticDataListResponse,
+  StaticDataTypesResponse,
+  StaticDataByTypeResponse,
+  StaticDataByCodeResponse,
+  StaticDataToggleStatusResponse,
+  StaticDataBulkUpdateStatusRequest,
+  StaticDataBulkUpdateStatusResponse,
   ApiResponse 
 } from '../../types/api';
 
@@ -12,9 +22,19 @@ import {
 
 export interface StaticDataState {
   staticData: StaticDataGroup | null;
+  staticDataList: StaticData[];
   staticDataTypes: string[];
   loading: boolean;
   error: string | null;
+  pagination: {
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
+    from: number;
+    to: number;
+  };
+  filters: Partial<StaticDataFilters>;
   cache: {
     [key: string]: {
       data: StaticData[];
@@ -30,9 +50,19 @@ export interface StaticDataState {
 
 const initialState: StaticDataState = {
   staticData: null,
+  staticDataList: [],
   staticDataTypes: [],
   loading: false,
   error: null,
+  pagination: {
+    current_page: 1,
+    last_page: 1,
+    per_page: 15,
+    total: 0,
+    from: 0,
+    to: 0,
+  },
+  filters: {},
   cache: {},
 };
 
@@ -49,6 +79,20 @@ export const getStaticDataAsync = createAsyncThunk(
       return response;
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to fetch static data';
+      return rejectWithValue(errorMessage);
+    }
+  }
+);
+
+// Get static data list with filtering and pagination
+export const getStaticDataListAsync = createAsyncThunk(
+  'staticData/getStaticDataList',
+  async (filters?: StaticDataFilters, { rejectWithValue }) => {
+    try {
+      const response = await staticDataService.getStaticDataList(filters);
+      return response;
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch static data list';
       return rejectWithValue(errorMessage);
     }
   }
@@ -91,6 +135,90 @@ export const getStaticDataByCodeAsync = createAsyncThunk(
       return response;
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to fetch static data by code';
+      return rejectWithValue(errorMessage);
+    }
+  }
+);
+
+// Get static data by ID
+export const getStaticDataByIdAsync = createAsyncThunk(
+  'staticData/getStaticDataById',
+  async (id: number, { rejectWithValue }) => {
+    try {
+      const response = await staticDataService.getStaticDataById(id);
+      return response;
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch static data by ID';
+      return rejectWithValue(errorMessage);
+    }
+  }
+);
+
+// Create static data
+export const createStaticDataAsync = createAsyncThunk(
+  'staticData/createStaticData',
+  async (data: StaticDataCreateRequest, { rejectWithValue }) => {
+    try {
+      const response = await staticDataService.createStaticData(data);
+      return response;
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to create static data';
+      return rejectWithValue(errorMessage);
+    }
+  }
+);
+
+// Update static data
+export const updateStaticDataAsync = createAsyncThunk(
+  'staticData/updateStaticData',
+  async ({ id, data }: { id: number; data: StaticDataUpdateRequest }, { rejectWithValue }) => {
+    try {
+      const response = await staticDataService.updateStaticData(id, data);
+      return response;
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to update static data';
+      return rejectWithValue(errorMessage);
+    }
+  }
+);
+
+// Toggle static data status
+export const toggleStaticDataStatusAsync = createAsyncThunk(
+  'staticData/toggleStaticDataStatus',
+  async (id: number, { rejectWithValue }) => {
+    try {
+      const response = await staticDataService.toggleStaticDataStatus(id);
+      return response;
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to toggle static data status';
+      return rejectWithValue(errorMessage);
+    }
+  }
+);
+
+// Bulk update static data status
+export const bulkUpdateStaticDataStatusAsync = createAsyncThunk(
+  'staticData/bulkUpdateStaticDataStatus',
+  async (data: StaticDataBulkUpdateStatusRequest, { rejectWithValue }) => {
+    try {
+      const response = await staticDataService.bulkUpdateStaticDataStatus(data);
+      return response;
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to bulk update static data status';
+      return rejectWithValue(errorMessage);
+    }
+  }
+);
+
+// Delete static data
+export const deleteStaticDataAsync = createAsyncThunk(
+  'staticData/deleteStaticData',
+  async (id: number, { rejectWithValue }) => {
+    try {
+      const response = await staticDataService.deleteStaticData(id);
+      return { id, response };
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to delete static data';
       return rejectWithValue(errorMessage);
     }
   }
@@ -186,9 +314,19 @@ export const staticDataSlice = createSlice({
     // Reset state
     resetStaticDataState: (state) => {
       state.staticData = null;
+      state.staticDataList = [];
       state.staticDataTypes = [];
       state.loading = false;
       state.error = null;
+      state.pagination = {
+        current_page: 1,
+        last_page: 1,
+        per_page: 15,
+        total: 0,
+        from: 0,
+        to: 0,
+      };
+      state.filters = {};
       state.cache = {};
     },
   },
@@ -218,15 +356,33 @@ export const staticDataSlice = createSlice({
         state.error = action.payload as string;
       })
       
+      // Get static data list with filtering and pagination
+      .addCase(getStaticDataListAsync.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(getStaticDataListAsync.fulfilled, (state, action: PayloadAction<ApiResponse<StaticDataListResponse>>) => {
+        state.loading = false;
+        if (action.payload.success && action.payload.data) {
+          state.staticDataList = action.payload.data.data;
+          state.pagination = action.payload.data.pagination;
+          state.filters = action.payload.data.filters;
+        }
+      })
+      .addCase(getStaticDataListAsync.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
+      
       // Get static data types
       .addCase(getStaticDataTypesAsync.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(getStaticDataTypesAsync.fulfilled, (state, action: PayloadAction<ApiResponse<string[]>>) => {
+      .addCase(getStaticDataTypesAsync.fulfilled, (state, action: PayloadAction<ApiResponse<StaticDataTypesResponse>>) => {
         state.loading = false;
         if (action.payload.success && action.payload.data) {
-          state.staticDataTypes = action.payload.data;
+          state.staticDataTypes = action.payload.data.data;
         }
       })
       .addCase(getStaticDataTypesAsync.rejected, (state, action) => {
@@ -239,13 +395,13 @@ export const staticDataSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      .addCase(getStaticDataByTypeAsync.fulfilled, (state, action: PayloadAction<ApiResponse<StaticData[]>>) => {
+      .addCase(getStaticDataByTypeAsync.fulfilled, (state, action: PayloadAction<ApiResponse<StaticDataByTypeResponse>>) => {
         state.loading = false;
         if (action.payload.success && action.payload.data) {
           // Cache the data - we'll need to handle the type differently
           // For now, we'll cache it under a generic key
           state.cache['static_data'] = {
-            data: action.payload.data,
+            data: action.payload.data.data,
             timestamp: Date.now(),
             expiresAt: Date.now() + (5 * 60 * 1000), // 5 minutes
           };
@@ -261,11 +417,95 @@ export const staticDataSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      .addCase(getStaticDataByCodeAsync.fulfilled, (state, action: PayloadAction<ApiResponse<StaticData>>) => {
+      .addCase(getStaticDataByCodeAsync.fulfilled, (state, action: PayloadAction<ApiResponse<StaticDataByCodeResponse>>) => {
         state.loading = false;
         // No caching for individual items
       })
       .addCase(getStaticDataByCodeAsync.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
+      
+      // Get static data by ID
+      .addCase(getStaticDataByIdAsync.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(getStaticDataByIdAsync.fulfilled, (state, action: PayloadAction<ApiResponse<StaticData>>) => {
+        state.loading = false;
+        // No caching for individual items
+      })
+      .addCase(getStaticDataByIdAsync.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
+      
+      // Create static data
+      .addCase(createStaticDataAsync.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(createStaticDataAsync.fulfilled, (state, action: PayloadAction<ApiResponse<StaticData>>) => {
+        state.loading = false;
+        // No caching for individual items
+      })
+      .addCase(createStaticDataAsync.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
+      
+      // Update static data
+      .addCase(updateStaticDataAsync.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(updateStaticDataAsync.fulfilled, (state, action: PayloadAction<ApiResponse<StaticData>>) => {
+        state.loading = false;
+        // No caching for individual items
+      })
+      .addCase(updateStaticDataAsync.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
+      
+      // Toggle static data status
+      .addCase(toggleStaticDataStatusAsync.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(toggleStaticDataStatusAsync.fulfilled, (state, action: PayloadAction<ApiResponse<StaticDataToggleStatusResponse>>) => {
+        state.loading = false;
+        // No caching for individual items
+      })
+      .addCase(toggleStaticDataStatusAsync.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
+      
+      // Bulk update static data status
+      .addCase(bulkUpdateStaticDataStatusAsync.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(bulkUpdateStaticDataStatusAsync.fulfilled, (state, action: PayloadAction<ApiResponse<StaticDataBulkUpdateStatusResponse>>) => {
+        state.loading = false;
+        // No caching for individual items
+      })
+      .addCase(bulkUpdateStaticDataStatusAsync.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
+      
+      // Delete static data
+      .addCase(deleteStaticDataAsync.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(deleteStaticDataAsync.fulfilled, (state, action: PayloadAction<{ id: number; response: ApiResponse<any> }>) => {
+        state.loading = false;
+        // No caching for individual items
+      })
+      .addCase(deleteStaticDataAsync.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
       })

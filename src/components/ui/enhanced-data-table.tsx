@@ -150,24 +150,98 @@ export function EnhancedDataTable<T>({
     if (typeof key === 'string' && key.includes('.')) {
       const keys = key.split('.');
       let value: unknown = record;
-      for (const k of keys) {
-        value = (value as Record<string, unknown>)?.[k];
+      
+      for (let i = 0; i < keys.length; i++) {
+        const k = keys[i];
+        
+        if (value && typeof value === 'object') {
+          if (Array.isArray(value)) {
+            // Handle arrays - get the last item for transfers
+            if (value.length > 0) {
+              value = value[value.length - 1];
+            } else {
+              return undefined;
+            }
+          }
+          
+          if (k in (value as Record<string, unknown>)) {
+            value = (value as Record<string, unknown>)[k];
+          } else {
+            return undefined;
+          }
+        } else {
+          return undefined;
+        }
       }
+      
       return value as string | number | boolean | undefined;
     }
-    return record[key as keyof T] as string | number | boolean | undefined;
+    
+    // Handle simple fields (non-nested)
+    const simpleValue = record[key as keyof T];
+    return simpleValue as string | number | boolean | undefined;
   };
 
   const handleExport = (format: 'csv' | 'pdf') => {
     if (format === 'csv') {
-      // Generate CSV
-      const headers = columns.filter(col => col.exportable !== false).map(col => col.label);
+      // Filter out actions column and any other non-exportable columns
+      const exportableColumns = columns.filter(col => 
+        col.exportable !== false && 
+        col.key !== 'actions' && 
+        !col.label.includes('الإجراءات')
+      );
+      
+      const headers = exportableColumns.map(col => col.label);
+      // Enhanced data extraction for CSV export
+      const enhancedData = data.map(record => {
+        const enhancedRecord: Record<string, any> = {};
+        
+        exportableColumns.forEach(col => {
+          const value = getValue(record, col.key);
+          
+          // Debug logging for troubleshooting
+          if (process.env.NODE_ENV === 'development') {
+            console.log(`Column: ${String(col.label)}, Key: ${String(col.key)}, Value:`, value);
+            console.log('Full record:', record);
+          }
+          
+          enhancedRecord[col.label] = value || '';
+        });
+        
+        return enhancedRecord;
+      });
+      
       const csvContent = [
         headers.join(','),
-        ...data.map(record => 
-          columns.filter(col => col.exportable !== false).map(col => {
-            const value = getValue(record, col.key);
-            return typeof value === 'string' ? `"${value}"` : String(value || '');
+        ...enhancedData.map(record => 
+          headers.map(header => {
+            const value = record[header];
+            
+            // Debug logging for troubleshooting
+            if (process.env.NODE_ENV === 'development') {
+              console.log(`Header: ${String(header)}, Value:`, value);
+            }
+            
+            // Handle different value types and ensure proper CSV formatting
+            if (value === null || value === undefined) {
+              return '';
+            } else if (typeof value === 'string') {
+              // Escape quotes and wrap in quotes if contains comma, newline, or quote
+              const escapedValue = value.replace(/"/g, '""');
+              if (escapedValue.includes(',') || escapedValue.includes('\n') || escapedValue.includes('"')) {
+                return `"${escapedValue}"`;
+              }
+              return escapedValue;
+            } else if (typeof value === 'boolean') {
+              return value ? 'نعم' : 'لا';
+            } else if (typeof value === 'number') {
+              return String(value);
+            } else if (typeof value === 'object') {
+              // Handle objects by converting to string representation
+              return JSON.stringify(value);
+            } else {
+              return String(value);
+            }
           }).join(',')
         )
       ].join('\n');
