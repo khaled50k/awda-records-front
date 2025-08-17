@@ -15,7 +15,7 @@ export const Sidebar: React.FC = () => {
   const location = useLocation();
   const { sidebarOpen } = useSelector((state: RootState) => state.ui);
   const navigate = useNavigate();
-  const { logout, user } = useAuth();
+  const { logout } = useAuth();
   const { routes, userRole, isAuthenticated, getUserRoleInfo } = useRoutes();
 
   // Close sidebar on ESC key (mobile only)
@@ -134,20 +134,6 @@ export const Sidebar: React.FC = () => {
         <div className="p-4 border-t border-border/30">
           {sidebarOpen ? (
             <div className="space-y-3">
-              <div className="flex items-center space-x-3 space-x-reverse">
-                <div className="w-8 h-8 bg-accent rounded-full flex items-center justify-center">
-                  <User className="w-4 h-4 text-muted-foreground" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground truncate">
-                    {('full_name' in user ? user.full_name : user?.user?.full_name) || 'Unknown User'}
-                  </p>
-                  <p className="text-xs text-muted-foreground truncate">
-                    @{('username' in user ? user.username : user?.user?.username) || 'username'}
-                  </p>
-                </div>
-              </div>
-              
               <NavLink
                 to="/profile"
                 className={cn(
@@ -186,20 +172,6 @@ export const Sidebar: React.FC = () => {
               >
                 <LogOut className="w-5 h-5" />
               </Button>
-              
-              <div className="w-8 h-8 bg-gradient-to-br from-primary to-primary/80 rounded-lg flex items-center justify-center shadow-md group relative">
-                <span className="text-primary-foreground font-bold text-xs">
-                  {(() => {
-                    const fullName = ('full_name' in user ? user.full_name : user?.user?.full_name) || '';
-                    return fullName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'ط';
-                  })()}
-                </span>
-                {/* Tooltip for collapsed avatar */}
-                <div className="absolute right-20 bg-popover text-popover-foreground px-3 py-2 rounded-lg text-sm opacity-0 group-hover:opacity-100 transition-all duration-300 whitespace-nowrap z-50 shadow-xl border pointer-events-none">
-                  {('full_name' in user ? user.full_name : user?.user?.full_name) || 'Unknown User'}
-                  <div className="absolute left-0 top-1/2 transform -translate-y-1/2 translate-x-1 w-2 h-2 bg-popover rotate-45 border-l border-b border-border"></div>
-                </div>
-              </div>
             </div>
           )}
         </div>
