@@ -98,6 +98,8 @@ export interface MedicalRecord {
   patient_id: number;
   status_code: string;
   problem_type_code: string;
+  danger_level_code?: string;
+  reviewed_party_user_id?: number;
   created_by: number;
   last_modified_by: number;
   created_at: string;
@@ -105,6 +107,8 @@ export interface MedicalRecord {
   patient?: Patient;
   status?: StaticData;
   problem_type?: StaticData;
+  danger_level?: StaticData;
+  reviewed_party_user?: User;
   creator?: User;
   last_modifier?: User;
   transfers?: RecordTransfer[];
@@ -114,6 +118,8 @@ export interface CreateMedicalRecordRequest {
   patient_id: number;
   recipient_id: number;
   problem_type_code: string;
+  danger_level_code?: string;
+  reviewed_party_user_id?: number;
   status_code?: string;
   transfer_notes?: string;
 }
@@ -121,6 +127,8 @@ export interface CreateMedicalRecordRequest {
 export interface UpdateMedicalRecordRequest {
   recipient_id?: number;
   problem_type_code?: string;
+  danger_level_code?: string;
+  reviewed_party_user_id?: number;
   status_code?: string;
   transfer_notes?: string;
 }

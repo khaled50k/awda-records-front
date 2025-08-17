@@ -189,6 +189,26 @@ export const ViewMedicalRecordPage: React.FC = () => {
                  <p className="text-lg font-semibold text-gray-900">{record.creator?.full_name || 'غير محدد'}</p>
                  <p className="text-sm text-gray-500">@{record.creator?.username || ''}</p>
                </div>
+
+               {/* Danger Level */}
+               <div className="space-y-2">
+                 <p className="text-sm font-medium text-gray-600">مستوى الخطر</p>
+                 <p className="text-lg font-semibold text-gray-900">{record.danger_level?.label_ar || 'غير محدد'}</p>
+               </div>
+
+               {/* Reviewed Party */}
+               <div className="space-y-2">
+                 <p className="text-sm font-medium text-gray-600">المُدقق عليه</p>
+                 <p className="text-lg font-semibold text-gray-900">{record.reviewed_party_user?.full_name || 'غير محدد'}</p>
+                 <p className="text-sm text-gray-500">@{record.reviewed_party_user?.username || ''}</p>
+               </div>
+
+               {/* Last Modified By */}
+               <div className="space-y-2">
+                 <p className="text-sm font-medium text-gray-600">آخر تعديل بواسطة</p>
+                 <p className="text-lg font-semibold text-gray-900">{record.last_modifier?.full_name || 'غير محدد'}</p>
+                 <p className="text-sm text-gray-500">@{record.last_modifier?.username || ''}</p>
+               </div>
              </div>
 
              {/* Timestamps */}

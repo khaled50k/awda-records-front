@@ -835,6 +835,7 @@ export const MedicalRecordsPage: React.FC<MedicalRecordsPageProps> = ({ userRole
   const { medicalRecords, loading, pagination, filters } = useSelector((state: RootState) => state.medicalRecords);
   const { patients } = useSelector((state: RootState) => state.patients);
   const { staticData } = useSelector((state: RootState) => state.staticData);
+  const { users } = useSelector((state: RootState) => state.users);
 
 
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -977,7 +978,31 @@ export const MedicalRecordsPage: React.FC<MedicalRecordsPageProps> = ({ userRole
         </div>
       ),
     },
-
+    {
+      key: 'danger_level.label_ar',
+      label: 'مستوى الخطر',
+      exportable: true,
+      render: (_: unknown, record: MedicalRecord) => (
+        <div className="flex items-center space-x-2 space-x-reverse">
+          <Badge className="bg-orange-100 text-orange-800 text-xs px-2 py-1">
+            {record.danger_level?.label_ar || 'غير محدد'}
+          </Badge>
+        </div>
+      ),
+    },
+    {
+      key: 'reviewed_party_user.full_name',
+      label: 'المُدقق عليه',
+      exportable: true,
+      render: (_: unknown, record: MedicalRecord) => (
+        <div className="flex items-center space-x-2 space-x-reverse">
+          <User className="w-4 h-4 text-muted-foreground" />
+          <span className="font-medium">
+            {record.reviewed_party_user?.full_name || 'غير محدد'}
+          </span>
+        </div>
+      ),
+    },
     {
       key: 'created_at',
       label: 'تاريخ الإنشاء',
@@ -1048,6 +1073,24 @@ export const MedicalRecordsPage: React.FC<MedicalRecordsPageProps> = ({ userRole
       options: staticData?.problem_type?.map(problemType => ({
         value: problemType.code,
         label: problemType.label_ar
+      })) || []
+    },
+    {
+      key: 'danger_level_code',
+      label: 'مستوى الخطر',
+      type: 'select' as const,
+      options: staticData?.danger_level?.map(dangerLevel => ({
+        value: dangerLevel.code,
+        label: dangerLevel.label_ar
+      })) || []
+    },
+    {
+      key: 'reviewed_party_user_id',
+      label: 'المُدقق عليه',
+      type: 'select' as const,
+      options: users?.map(user => ({
+        value: user.user_id.toString(),
+        label: user.full_name
       })) || []
     },
 
@@ -1129,8 +1172,11 @@ export const MedicalRecordsPage: React.FC<MedicalRecordsPageProps> = ({ userRole
     if (filters.problem_type_code && filters.problem_type_code !== 'all') {
       params.problemTypeCode = filters.problem_type_code;
     }
-    if (filters.health_center_code && filters.health_center_code !== 'all') {
-      params.healthCenterCode = filters.health_center_code;
+    if (filters.danger_level_code && filters.danger_level_code !== 'all') {
+      params.dangerLevelCode = filters.danger_level_code;
+    }
+    if (filters.reviewed_party_user_id && filters.reviewed_party_user_id !== 'all') {
+      params.reviewedPartyUserId = filters.reviewed_party_user_id;
     }
     
     // Date range filters
@@ -1202,7 +1248,7 @@ export const MedicalRecordsPage: React.FC<MedicalRecordsPageProps> = ({ userRole
             showFilters={true}
             showSearch={true}
             searchPlaceholder="البحث في السجلات الطبية..."
-            searchableColumns={['patient.full_name', 'status.label_ar', 'transfers.recipient.full_name']}
+            searchableColumns={['patient.full_name', 'status.label_ar', 'transfers.recipient.full_name', 'danger_level.label_ar', 'reviewed_party_user.full_name']}
             title="السجلات الطبية"
             renderCustomFilter={renderCustomFilter}
           />

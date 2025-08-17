@@ -350,6 +350,8 @@ export const CreateMedicalRecordPage: React.FC = () => {
     patient_id: 0,
     recipient_id: 0,
     problem_type_code: '',
+    danger_level_code: '',
+    reviewed_party_user_id: 0,
     status_code: '',
     transfer_notes: ''
   });
@@ -357,6 +359,8 @@ export const CreateMedicalRecordPage: React.FC = () => {
   // Get options from static data
   const statusOptions = staticData?.status || [];
   const problemTypeOptions = staticData?.problem_type || [];
+  const dangerLevelOptions = staticData?.danger_level || [];
+  const userOptions = users || [];
 
   useEffect(() => {
     // Don't fetch on page load - only fetch when user starts searching
@@ -601,6 +605,49 @@ export const CreateMedicalRecordPage: React.FC = () => {
                       ))}
                     </SelectContent>
                   </Select>
+                </div>
+              </div>
+
+              {/* Danger Level and Reviewed Party */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Danger Level */}
+                <div className="space-y-3">
+                  <Label htmlFor="danger_level_code" className="text-base font-semibold text-gray-700 dark:text-gray-300">
+                    مستوى الخطر
+                  </Label>
+                  <Select
+                    value={formData.danger_level_code || ''}
+                    onValueChange={(value) => setFormData({ ...formData, danger_level_code: value })}
+                    disabled={isLoading}
+                  >
+                    <SelectTrigger className="h-12">
+                      <SelectValue placeholder="اختر مستوى الخطر" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {dangerLevelOptions.map((dangerLevel) => (
+                        <SelectItem key={dangerLevel.code} value={dangerLevel.code}>
+                          <span>{dangerLevel.label_ar}</span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Reviewed Party */}
+                <div className="space-y-3">
+                  <Label htmlFor="reviewed_party_user_id" className="text-base font-semibold text-gray-700 dark:text-gray-300">
+المُدقق عليه                  </Label>
+                  <SearchableRecipientInput
+                    value={formData.reviewed_party_user_id || null}
+                    onChange={(value) => setFormData({ ...formData, reviewed_party_user_id: value || 0 })}
+                    placeholder="البحث عن المُدقق عليه..."
+                    users={users}
+                    disabled={false}
+                  />
+                  <p className="text-sm text-muted-foreground flex items-center space-x-2 space-x-reverse">
+                    <User className="w-4 h-4" />
+                    <span>اختر المُدقق عليه </span>
+                  </p>
                 </div>
               </div>
 
