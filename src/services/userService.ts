@@ -49,11 +49,16 @@ export class UserService {
 
   // Create new user
   async createUser(userData: CreateUserRequest): Promise<ApiResponse<{ user: User }>> {
+  
     return apiService.post<{ user: User }>('/users', userData);
   }
 
   // Update existing user
   async updateUser(id: number, userData: UpdateUserRequest): Promise<ApiResponse<{ user: User }>> {
+    //if password is empty don't send it
+    if (userData.password === '') {
+      delete userData.password;
+    }
     return apiService.put<{ user: User }>(`/users/${id}`, userData);
   }
 
