@@ -404,7 +404,7 @@ const RecordFormDialog: React.FC<FormDialogProps> = ({
   // Get problem type options from static data
   const problemTypeOptions = staticData?.problem_type || [];
   // Get health center options from static data
-  const healthCenterOptions = staticData?.health_center_type || [];
+
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -419,14 +419,7 @@ const RecordFormDialog: React.FC<FormDialogProps> = ({
       return;
     }
     
-    if (!form.health_center_code) {
-      toast({
-        title: "خطأ في البيانات",
-        description: "يرجى اختيار مركز الرعاية الصحية",
-        variant: "destructive",
-      });
-      return;
-    }
+
     
     if (!form.problem_type_code) {
       toast({
@@ -465,21 +458,7 @@ const RecordFormDialog: React.FC<FormDialogProps> = ({
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="health_center_code">مركز الرعاية الصحية *</Label>
-            <Select value={form.health_center_code} onValueChange={(value) => setForm({ ...form, health_center_code: value })} required>
-              <SelectTrigger>
-                <SelectValue placeholder="اختر مركز الرعاية الصحية" />
-              </SelectTrigger>
-              <SelectContent>
-                {healthCenterOptions.map((center) => (
-                  <SelectItem key={center.code} value={center.code}>
-                    {center.label_ar}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+
 
           <div className="space-y-2">
             <Label htmlFor="problem_type_code">نوع المشكلة</Label>
@@ -642,8 +621,8 @@ const ViewRecordModal: React.FC<ViewRecordModalProps> = ({ isOpen, onOpenChange,
                 <div className="text-blue-900 font-semibold">{record.problem_type?.label_ar || 'غير محدد'}</div>
               </div>
               <div>
-                <div className="text-blue-600 text-sm font-medium">نوع المركز</div>
-                <div className="text-blue-900 font-semibold">{record.health_center?.label_ar || 'غير محدد'}</div>
+                <div className="text-blue-600 text-sm font-medium">المركز الصحي</div>
+                <div className="text-blue-900 font-semibold">{record.patient?.health_center?.label_ar || 'غير محدد'}</div>
               </div>
               <div>
                 <div className="text-blue-600 text-sm font-medium">التحويلات</div>
@@ -682,6 +661,14 @@ const ViewRecordModal: React.FC<ViewRecordModalProps> = ({ isOpen, onOpenChange,
                   <span className="text-sm">{formatDate(record.patient?.created_at || '')}</span>
                 </div>
               </div>
+              <div>
+                <Label className="text-sm font-medium text-gray-600">المركز الصحي</Label>
+                <div className="mt-1 p-2 bg-green-50 rounded border border-green-200">
+                  <Badge variant="outline" className="border-green-300 text-green-800">
+                    {record.patient?.health_center?.label_ar || record.patient?.health_center_code || 'غير محدد'}
+                  </Badge>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -711,14 +698,7 @@ const ViewRecordModal: React.FC<ViewRecordModalProps> = ({ isOpen, onOpenChange,
                   </Badge>
                 </div>
               </div>
-              <div>
-                <Label className="text-sm font-medium text-gray-600">مركز الرعاية الصحية</Label>
-                <div className="mt-1 p-2 bg-green-50 rounded border border-green-200">
-                  <Badge variant="outline" className="border-green-300 text-green-800">
-                    {record.health_center?.label_ar || 'غير محدد'}
-                  </Badge>
-                </div>
-              </div>
+
             </div>
           </div>
 
@@ -863,7 +843,6 @@ export const MedicalRecordsPage: React.FC<MedicalRecordsPageProps> = ({ userRole
   const [formData, setFormData] = useState({
     patient_id: 0,
     recipient_id: null as number | null,
-    health_center_code: '',
     status_code: 'initiated',
     problem_type_code: '',
     transfer_notes: ''
@@ -881,7 +860,6 @@ export const MedicalRecordsPage: React.FC<MedicalRecordsPageProps> = ({ userRole
       const apiData = {
         patient_id: data.patient_id,
         recipient_id: data.recipient_id,
-        health_center_code: data.health_center_code,
         problem_type_code: data.problem_type_code,
         status_code: data.status_code,
         transfer_notes: data.transfer_notes
@@ -892,7 +870,6 @@ export const MedicalRecordsPage: React.FC<MedicalRecordsPageProps> = ({ userRole
       setFormData({ 
         patient_id: 0, 
         recipient_id: null, 
-        health_center_code: '', 
         status_code: 'initiated', 
         problem_type_code: '', 
         transfer_notes: '' 
@@ -917,7 +894,6 @@ export const MedicalRecordsPage: React.FC<MedicalRecordsPageProps> = ({ userRole
       // Transform data to match API requirements
       const apiData = {
         recipient_id: data.recipient_id,
-        health_center_code: data.health_center_code,
         problem_type_code: data.problem_type_code,
         status_code: data.status_code,
         transfer_notes: data.transfer_notes
@@ -929,7 +905,6 @@ export const MedicalRecordsPage: React.FC<MedicalRecordsPageProps> = ({ userRole
       setFormData({ 
         patient_id: 0, 
         recipient_id: null, 
-        health_center_code: '', 
         status_code: 'initiated', 
         problem_type_code: '', 
         transfer_notes: '' 
@@ -1002,18 +977,7 @@ export const MedicalRecordsPage: React.FC<MedicalRecordsPageProps> = ({ userRole
         </div>
       ),
     },
-    {
-      key: 'health_center.label_ar',
-      label: 'مركز الرعاية الصحية',
-      exportable: true,
-      render: (_: unknown, record: MedicalRecord) => (
-        <div className="flex items-center space-x-2 space-x-reverse">
-          <Badge className="bg-green-100 text-green-800 text-xs px-2 py-1">
-            {record.health_center?.label_ar || 'غير محدد'}
-          </Badge>
-        </div>
-      ),
-    },
+
     {
       key: 'created_at',
       label: 'تاريخ الإنشاء',
@@ -1086,15 +1050,7 @@ export const MedicalRecordsPage: React.FC<MedicalRecordsPageProps> = ({ userRole
         label: problemType.label_ar
       })) || []
     },
-    {
-      key: 'health_center_code',
-      label: 'مركز الرعاية الصحية',
-      type: 'select' as const,
-      options: staticData?.health_center_type?.map(center => ({
-        value: center.code,
-        label: center.label_ar
-      })) || []
-    },
+
     // Date range filters
     {
       key: 'created_from',

@@ -26,12 +26,14 @@ export class PatientService {
     perPage?: number;
     search?: string;
     genderCode?: string;
+    healthCenterCode?: string;
   } = {}): Promise<ApiResponse<PaginatedResponse<Patient>>> {
     const searchParams = new URLSearchParams();
     if (params.page) searchParams.append('page', params.page.toString());
     if (params.perPage) searchParams.append('per_page', params.perPage.toString());
     if (params.search) searchParams.append('search', params.search);
     if (params.genderCode) searchParams.append('gender_code', params.genderCode);
+    if (params.healthCenterCode) searchParams.append('health_center_code', params.healthCenterCode);
     
     return apiService.get<PaginatedResponse<Patient>>(`/patients?${searchParams.toString()}`);
   }
@@ -64,6 +66,11 @@ export class PatientService {
   // Get patients by gender
   async getPatientsByGender(genderCode: string, page = 1, perPage = 15): Promise<ApiResponse<PaginatedResponse<Patient>>> {
     return apiService.get<PaginatedResponse<Patient>>(`/patients?gender_code=${genderCode}&page=${page}&per_page=${perPage}`);
+  }
+
+  // Get patients by health center
+  async getPatientsByHealthCenter(healthCenterCode: string, page = 1, perPage = 15): Promise<ApiResponse<PaginatedResponse<Patient>>> {
+    return apiService.get<PaginatedResponse<Patient>>(`/patients?health_center_code=${healthCenterCode}&page=${page}&per_page=${perPage}`);
   }
 }
 

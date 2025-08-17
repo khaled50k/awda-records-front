@@ -226,8 +226,8 @@ export const ViewTransferPage: React.FC = () => {
 
               {/* Health Center */}
               <div className="space-y-2">
-                <p className="text-sm font-medium text-gray-600">مركز الرعاية الصحية</p>
-                <p className="text-lg font-semibold text-gray-900">{transfer.medical_record.health_center?.label_ar || transfer.medical_record.health_center_code || 'غير محدد'}</p>
+                <p className="text-sm font-medium text-gray-600">المركز الصحي</p>
+                <p className="text-lg font-semibold text-gray-900">{transfer.medical_record.patient?.health_center?.label_ar || transfer.medical_record.patient?.health_center_code || 'غير محدد'}</p>
               </div>
 
               {/* Problem Type */}

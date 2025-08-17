@@ -31,7 +31,6 @@ export class MedicalRecordService {
     // Record status & type filters
     statusCode?: string;
     problemTypeCode?: string;
-    healthCenterCode?: string;
     // Date range filters
     createdFrom?: string;
     createdTo?: string;
@@ -62,7 +61,6 @@ export class MedicalRecordService {
     // Record status & type filters
     if (params.statusCode) searchParams.append('status_code', params.statusCode);
     if (params.problemTypeCode) searchParams.append('problem_type_code', params.problemTypeCode);
-    if (params.healthCenterCode) searchParams.append('health_center_code', params.healthCenterCode);
     
     // Date range filters
     if (params.createdFrom) searchParams.append('created_from', params.createdFrom);
@@ -114,10 +112,7 @@ export class MedicalRecordService {
     return apiService.get<PaginatedResponse<MedicalRecord>>(`/records?status_code=${statusCode}&page=${page}&per_page=${perPage}`);
   }
 
-  // Get medical records by health center
-  async getMedicalRecordsByHealthCenter(healthCenterCode: string, page = 1, perPage = 15): Promise<ApiResponse<PaginatedResponse<MedicalRecord>>> {
-    return apiService.get<PaginatedResponse<MedicalRecord>>(`/records?health_center_code=${healthCenterCode}&page=${page}&per_page=${perPage}`);
-  }
+
 
   // Get medical records created by specific user
   async getMedicalRecordsByCreator(createdBy: number, page = 1, perPage = 15): Promise<ApiResponse<PaginatedResponse<MedicalRecord>>> {

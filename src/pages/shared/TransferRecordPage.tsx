@@ -321,9 +321,9 @@ export const TransferRecordPage: React.FC = () => {
                   </p>
                 </div>
                 <div className="space-y-2">
-                  <p className="text-sm font-medium text-gray-600">مركز الرعاية الصحية</p>
+                  <p className="text-sm font-medium text-gray-600">المركز الصحي</p>
                   <p className="text-lg font-semibold text-gray-900">
-                    {medicalRecord.health_center?.label_ar || medicalRecord.health_center_code || 'غير محدد'}
+                    {medicalRecord.patient?.health_center?.label_ar || medicalRecord.patient?.health_center_code || 'غير محدد'}
                   </p>
                 </div>
                 <div className="space-y-2">
@@ -402,7 +402,7 @@ export const TransferRecordPage: React.FC = () => {
                   value={formData.transfer_notes}
                   onChange={(e) => setFormData({ ...formData, transfer_notes: e.target.value })}
                   placeholder="أدخل ملاحظات مفصلة حول سبب التحويل والمتطلبات..."
-                  rows={4}
+                  rows={16}
                   className="resize-none"
                 />
                 <p className="text-sm text-gray-500">

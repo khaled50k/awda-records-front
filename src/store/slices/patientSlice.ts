@@ -26,6 +26,7 @@ export interface PatientState {
   filters: {
     search: string;
     genderCode: string;
+    healthCenterCode: string;
   };
 }
 
@@ -47,6 +48,7 @@ const initialState: PatientState = {
   filters: {
     search: '',
     genderCode: '',
+    healthCenterCode: '',
   },
 };
 
@@ -57,7 +59,7 @@ const initialState: PatientState = {
 // Get patients with pagination and filters
 export const getPatientsAsync = createAsyncThunk(
   'patients/getPatients',
-  async (params: { page?: number; perPage?: number; search?: string; genderCode?: string }, { rejectWithValue }) => {
+  async (params: { page?: number; perPage?: number; search?: string; genderCode?: string; healthCenterCode?: string }, { rejectWithValue }) => {
     try {
       const response = await patientService.getPatients(params);
       return response;
@@ -89,6 +91,19 @@ export const getPatientsByGenderAsync = createAsyncThunk(
       return response;
     } catch (error: any) {
       return rejectWithValue(error.message || 'Failed to fetch patients by gender');
+    }
+  }
+);
+
+// Get patients by health center
+export const getPatientsByHealthCenterAsync = createAsyncThunk(
+  'patients/getPatientsByHealthCenter',
+  async (healthCenterCode: string, { rejectWithValue }) => {
+    try {
+      const response = await patientService.getPatientsByHealthCenter(healthCenterCode);
+      return response;
+    } catch (error: any) {
+      return rejectWithValue(error.message || 'Failed to fetch patients by health center');
     }
   }
 );

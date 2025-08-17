@@ -70,9 +70,11 @@ export interface Patient {
   full_name: string;
   national_id: number;
   gender_code: string;
+  health_center_code: string;
   created_at: string;
   updated_at: string;
   gender?: StaticData;
+  health_center?: StaticData;
   medical_records?: MedicalRecord[];
 }
 
@@ -80,19 +82,20 @@ export interface CreatePatientRequest {
   full_name: string;
   national_id: number;
   gender_code: string;
+  health_center_code: string;
 }
 
 export interface UpdatePatientRequest {
   full_name?: string;
   national_id?: number;
   gender_code?: string;
+  health_center_code?: string;
 }
 
 // Medical Record Types
 export interface MedicalRecord {
   record_id: number;
   patient_id: number;
-  health_center_code: string;
   status_code: string;
   problem_type_code: string;
   created_by: number;
@@ -100,7 +103,6 @@ export interface MedicalRecord {
   created_at: string;
   updated_at: string;
   patient?: Patient;
-  health_center?: StaticData;
   status?: StaticData;
   problem_type?: StaticData;
   creator?: User;
@@ -111,7 +113,6 @@ export interface MedicalRecord {
 export interface CreateMedicalRecordRequest {
   patient_id: number;
   recipient_id: number;
-  health_center_code: string;
   problem_type_code: string;
   status_code?: string;
   transfer_notes?: string;
@@ -119,7 +120,6 @@ export interface CreateMedicalRecordRequest {
 
 export interface UpdateMedicalRecordRequest {
   recipient_id?: number;
-  health_center_code?: string;
   problem_type_code?: string;
   status_code?: string;
   transfer_notes?: string;

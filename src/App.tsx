@@ -12,6 +12,7 @@ import { ProfilePage } from './pages/ProfilePage';
 
 // Import shared pages
 import { PatientsPage } from './pages/shared/PatientsPage';
+import { ViewPatientPage } from './pages/shared/ViewPatientPage';
 import { MedicalRecordsPage } from './pages/shared/MedicalRecordsPage';
 import { CreateMedicalRecordPage } from './pages/shared/CreateMedicalRecordPage';
 import { CreatePatientPage } from './pages/shared/CreatePatientPage';
@@ -70,7 +71,8 @@ const AppContent: React.FC = () => {
               <Route path="dashboard" element={<AdminDashboardPage />} />
               <Route path="users" element={<AdminUsersPage />} />
               <Route path="static-data" element={<AdminStaticDataPage />} />
-              <Route path="patients" element={<PatientsPage userRole="admin" />} />
+              <Route path="patients" element={<PatientsPage />} />
+              <Route path="patients/:patientId" element={<ViewPatientPage />} />
               <Route path="medical-records" element={<MedicalRecordsPage userRole="admin" />} />
               <Route path="medical-records/create" element={<CreateMedicalRecordPage />} />
               <Route path="medical-records/:recordId" element={<ViewMedicalRecordPage />} />

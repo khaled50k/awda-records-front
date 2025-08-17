@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
 import { RootState, useAppDispatch } from '../../store';
 import {
   getPatientsAsync,
@@ -82,8 +83,9 @@ interface FormDialogProps {
     full_name: string;
     national_id: number;
     gender_code: string;
+    health_center_code: string;
   };
-  onSubmit: (data: { full_name: string; national_id: number; gender_code: string }) => void;
+  onSubmit: (data: { full_name: string; national_id: number; gender_code: string; health_center_code: string }) => void;
   isLoading: boolean;
   editingPatient?: Patient | null;
 }
@@ -100,8 +102,13 @@ const PatientFormDialog: React.FC<FormDialogProps> = ({
   const { staticData } = useSelector((state: RootState) => state.staticData);
   const [form, setForm] = useState(formData);
 
-  // Get genders for form dropdown
+  // Get genders and health centers for form dropdown
   const genders = staticData?.gender || [];
+  const healthCenters = staticData?.health_center_type || [];
+
+  // Debug logging for form dialog
+  console.log('PatientFormDialog - Health centers loaded:', healthCenters.length);
+  console.log('PatientFormDialog - First health center:', healthCenters[0]);
 
   // Update form when editingPatient changes
   React.useEffect(() => {
@@ -109,7 +116,8 @@ const PatientFormDialog: React.FC<FormDialogProps> = ({
       setForm({
         full_name: editingPatient.full_name,
         national_id: editingPatient.national_id,
-        gender_code: editingPatient.gender_code
+        gender_code: editingPatient.gender_code,
+        health_center_code: editingPatient.health_center_code
       });
     }
   }, [editingPatient]);
@@ -125,7 +133,8 @@ const PatientFormDialog: React.FC<FormDialogProps> = ({
       setForm({
         full_name: editingPatient.full_name,
         national_id: editingPatient.national_id,
-        gender_code: editingPatient.gender_code
+        gender_code: editingPatient.gender_code,
+        health_center_code: editingPatient.health_center_code
       });
     }
     onOpenChange(false);
@@ -159,6 +168,12 @@ const PatientFormDialog: React.FC<FormDialogProps> = ({
                 <span className="text-muted-foreground">الجنس:</span>
                 <span className="font-medium mr-2">
                   {editingPatient.gender?.label_ar || editingPatient.gender_code}
+                </span>
+              </div>
+              <div>
+                <span className="text-muted-foreground">المركز الصحي:</span>
+                <span className="font-medium mr-2">
+                  {editingPatient.health_center?.label_ar || editingPatient.health_center_code || 'غير محدد'}
                 </span>
               </div>
               <div>
@@ -206,6 +221,29 @@ const PatientFormDialog: React.FC<FormDialogProps> = ({
               </SelectContent>
             </Select>
           </div>
+          <div className="space-y-2">
+            <Label htmlFor="health_center_code">المركز الصحي</Label>
+            {healthCenters.length > 0 ? (
+              <Select value={form.health_center_code} onValueChange={(value) => setForm({ ...form, health_center_code: value })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="اختر المركز الصحي" />
+                </SelectTrigger>
+                <SelectContent>
+                  {healthCenters.map((center: StaticData) => (
+                    <SelectItem key={center.code} value={center.code}>
+                      {center.label_ar}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <p className="text-sm text-yellow-800">
+                  لا توجد مراكز صحية متاحة. يرجى التأكد من تحميل البيانات الأساسية.
+                </p>
+              </div>
+            )}
+          </div>
 
           <DialogFooter className="gap-2">
             <Button type="button" variant="outline" onClick={handleCancel}>
@@ -241,24 +279,18 @@ const PatientDetailsModal: React.FC<PatientDetailsModalProps> = ({
 
   // Filter state
   const [filterProblemType, setFilterProblemType] = useState<string>('all');
-  const [filterHealthCenter, setFilterHealthCenter] = useState<string>('all');
 
   // Filter records based on selected filters
   const filteredRecords = patientRecords.filter(record => {
     const matchesProblemType = filterProblemType === 'all' ||
       (record.problem_type?.code === filterProblemType || record.problem_type_code === filterProblemType);
-    const matchesHealthCenter = filterHealthCenter === 'all' ||
-      (record.health_center?.code === filterHealthCenter || record.health_center_code === filterHealthCenter);
 
-    return matchesProblemType && matchesHealthCenter;
+    return matchesProblemType;
   });
 
-  // Get unique problem types and health center types for filter options
+  // Get unique problem types for filter options
   const uniqueProblemTypes = Array.from(new Set(
     patientRecords.map(record => record.problem_type?.code || record.problem_type_code).filter(Boolean)
-  ));
-  const uniqueHealthCenters = Array.from(new Set(
-    patientRecords.map(record => record.health_center?.code || record.health_center_code).filter(Boolean)
   ));
 
 
@@ -315,9 +347,8 @@ const PatientDetailsModal: React.FC<PatientDetailsModalProps> = ({
                 <h4 className="font-medium mb-2 text-sm text-muted-foreground">مركز الرعاية الصحية</h4>
                 <div className="text-sm">
                   {(() => {
-                    const firstRecord = patientRecords[0];
-                    const healthCenter = firstRecord.health_center?.label_ar ||
-                      firstRecord.health_center_code ||
+                    const healthCenter = patient.health_center?.label_ar ||
+                      patient.health_center_code ||
                       'غير محدد';
                     return (
                       <div className="flex items-center">
@@ -359,6 +390,22 @@ const PatientDetailsModal: React.FC<PatientDetailsModalProps> = ({
                 </div>
               </div>
               <div>
+                <Label className="text-sm font-medium text-muted-foreground">المركز الصحي</Label>
+                <div className="mt-1">
+                  {patient.health_center ? (
+                    <div className="space-y-1">
+                      <Badge className="bg-green-100 text-green-800 text-xs px-2 py-1">
+                        {patient.health_center.label_ar}
+                      </Badge>
+                    </div>
+                  ) : (
+                    <Badge className="bg-gray-100 text-gray-800 text-xs px-2 py-1">
+                      {patient.health_center_code || 'غير محدد'}
+                    </Badge>
+                  )}
+                </div>
+              </div>
+              <div>
                 <Label className="text-sm font-medium text-muted-foreground">تاريخ الإنشاء</Label>
                 <p className="text-lg">{formatDate(patient.created_at)}</p>
               </div>
@@ -388,13 +435,7 @@ const PatientDetailsModal: React.FC<PatientDetailsModalProps> = ({
                           <h4 className="text-lg font-semibold text-primary">
                             السجل الطبي #{record.record_id}
                           </h4>
-                          <div className="flex items-center space-x-2 space-x-reverse text-sm">
-                            {record.health_center && (
-                              <Badge className="bg-blue-100 text-blue-800 text-xs px-2 py-1">
-                                {record.health_center.label_ar}
-                              </Badge>
-                            )}
-                          </div>
+                          
                         </div>
                         <div className="flex items-center space-x-2 space-x-reverse">
                           {record.status && (
@@ -412,20 +453,7 @@ const PatientDetailsModal: React.FC<PatientDetailsModalProps> = ({
                           <Label className="text-sm font-medium text-muted-foreground">معرف المريض</Label>
                           <p className="font-semibold">#{record.patient_id}</p>
                         </div>
-                        <div>
-                          <Label className="text-sm font-medium text-muted-foreground">مركز الرعاية الصحية</Label>
-                          <div className="mt-1">
-                            {record.health_center ? (
-                              <div className="space-y-1">
-                                <Badge className="bg-blue-100 text-blue-800 text-xs px-2 py-1">
-                                  {record.health_center.label_ar}
-                                </Badge>
-                              </div>
-                            ) : (
-                              <p className="font-semibold">{record.health_center_code}</p>
-                            )}
-                          </div>
-                        </div>
+
                         <div>
                           <Label className="text-sm font-medium text-muted-foreground">نوع المشكلة</Label>
                           <div className="mt-1">
@@ -572,6 +600,7 @@ const PatientDetailsModal: React.FC<PatientDetailsModalProps> = ({
 
 // Main component
 export const PatientsPage: React.FC = () => {
+  const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { patients, loading, pagination, filters } = useSelector((state: RootState) => state.patients);
   const { staticData } = useSelector((state: RootState) => state.staticData);
@@ -584,21 +613,23 @@ export const PatientsPage: React.FC = () => {
   const [formData, setFormData] = useState({
     full_name: '',
     national_id: 0,
-    gender_code: ''
+    gender_code: '',
+    health_center_code: ''
   });
 
   useEffect(() => {
     dispatch(getPatientsAsync({ page: 1, perPage: 15 }));
   }, [dispatch]);
 
-  // Get genders for filter dropdown
+  // Get genders and health centers for filter dropdown
   const genders = staticData?.gender || [];
+  const healthCenters = staticData?.health_center_type || [];
 
-  const handleCreatePatient = async (data: { full_name: string; national_id: number; gender_code: string }) => {
+  const handleCreatePatient = async (data: { full_name: string; national_id: number; gender_code: string; health_center_code: string }) => {
     try {
       await dispatch(createPatientAsync(data)).unwrap();
       setIsFormOpen(false);
-      setFormData({ full_name: '', national_id: 0, gender_code: '' });
+      setFormData({ full_name: '', national_id: 0, gender_code: '', health_center_code: '' });
       toast({
         title: "تم إنشاء المريض بنجاح",
         description: "تم إضافة المريض الجديد إلى النظام",
@@ -612,14 +643,14 @@ export const PatientsPage: React.FC = () => {
     }
   };
 
-  const handleUpdatePatient = async (data: { full_name: string; national_id: number; gender_code: string }) => {
+  const handleUpdatePatient = async (data: { full_name: string; national_id: number; gender_code: string; health_center_code: string }) => {
     if (!editingPatient) return;
 
     try {
       await dispatch(updatePatientAsync({ id: editingPatient.patient_id, patientData: data })).unwrap();
       setIsFormOpen(false);
       setEditingPatient(null);
-      setFormData({ full_name: '', national_id: 0, gender_code: '' });
+      setFormData({ full_name: '', national_id: 0, gender_code: '', health_center_code: '' });
       toast({
         title: "تم تحديث المريض بنجاح",
         description: "تم تحديث بيانات المريض",
@@ -635,16 +666,12 @@ export const PatientsPage: React.FC = () => {
 
   const handleViewPatient = async (patient: Patient) => {
     try {
-      // Fetch detailed patient data by ID
-      const result = await dispatch(getPatientAsync(patient.patient_id)).unwrap();
-      if (result.data) {
-        setSelectedPatient(result.data);
-        setIsDetailsModalOpen(true);
-      }
+      // Navigate to the patient details page
+      navigate(`/admin/patients/${patient.patient_id}`);
     } catch (error) {
       toast({
-        title: "خطأ في جلب بيانات المريض",
-        description: "حدث خطأ أثناء جلب تفاصيل المريض",
+        title: "خطأ في الانتقال",
+        description: "حدث خطأ أثناء الانتقال لصفحة المريض",
         variant: "destructive",
       });
     }
@@ -711,7 +738,8 @@ export const PatientsPage: React.FC = () => {
               setFormData({
                 full_name: record.full_name,
                 national_id: record.national_id,
-                gender_code: record.gender_code
+                gender_code: record.gender_code,
+                health_center_code: record.health_center_code
               });
               setIsFormOpen(true);
             }}
@@ -735,7 +763,7 @@ export const PatientsPage: React.FC = () => {
         </div>
         <Button onClick={() => {
           setEditingPatient(null);
-          setFormData({ full_name: '', national_id: 0, gender_code: '' });
+          setFormData({ full_name: '', national_id: 0, gender_code: '', health_center_code: '' });
           setIsFormOpen(true);
         }}>
           <Plus className="w-4 h-4 ml-2" />
@@ -770,13 +798,15 @@ export const PatientsPage: React.FC = () => {
               // Handle search and filters
               const searchTerm = filters.search as string || '';
               const genderCode = filters.gender_code as string || '';
+              const healthCenterCode = filters.health_center_code as string || '';
               
-              if (searchTerm || genderCode) {
+              if (searchTerm || genderCode || healthCenterCode) {
                 dispatch(getPatientsAsync({ 
                   page: 1, 
                   perPage: pagination.perPage,
                   search: searchTerm,
-                  genderCode: genderCode
+                  genderCode: genderCode,
+                  healthCenterCode: healthCenterCode
                 }));
               } else {
                 dispatch(getPatientsAsync({ page: 1, perPage: pagination.perPage }));
@@ -795,6 +825,18 @@ export const PatientsPage: React.FC = () => {
                   ...genders.map(gender => ({
                     value: gender.code,
                     label: gender.label_ar
+                  }))
+                ]
+              },
+              {
+                key: 'health_center_code',
+                label: 'المركز الصحي',
+                type: 'select',
+                options: [
+                  { value: 'all', label: 'الكل' },
+                  ...healthCenters.map(center => ({
+                    value: center.code,
+                    label: center.label_ar
                   }))
                 ]
               }

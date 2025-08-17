@@ -24,11 +24,13 @@ export const CreatePatientPage: React.FC = () => {
   const [formData, setFormData] = useState<CreatePatientRequest>({
     full_name: '',
     national_id: 0,
-    gender_code: ''
+    gender_code: '',
+    health_center_code: ''
   });
 
   // Get options from static data
   const genderOptions = staticData?.gender || [];
+  const healthCenterOptions = staticData?.health_center_type || [];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,6 +58,15 @@ export const CreatePatientPage: React.FC = () => {
       toast({
         title: "خطأ في البيانات",
         description: "يرجى اختيار الجنس",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!formData.health_center_code) {
+      toast({
+        title: "خطأ في البيانات",
+        description: "يرجى اختيار المركز الصحي",
         variant: "destructive",
       });
       return;
@@ -174,6 +185,32 @@ export const CreatePatientPage: React.FC = () => {
                 <p className="text-sm text-muted-foreground flex items-center space-x-2 space-x-reverse">
                   <User className="w-4 h-4" />
                   <span>اختر الجنس من القائمة</span>
+                </p>
+              </div>
+
+              {/* Health Center */}
+              <div className="space-y-3">
+                <Label htmlFor="health_center_code" className="text-base font-semibold text-gray-700 dark:text-gray-300">
+                  المركز الصحي <span className="text-red-500 text-lg">*</span>
+                </Label>
+                <Select
+                  value={formData.health_center_code}
+                  onValueChange={(value) => setFormData({ ...formData, health_center_code: value })}
+                >
+                  <SelectTrigger className="h-12">
+                    <SelectValue placeholder="اختر المركز الصحي" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {healthCenterOptions.map((center) => (
+                      <SelectItem key={center.code} value={center.code}>
+                        <span>{center.label_ar}</span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-sm text-muted-foreground flex items-center space-x-2 space-x-reverse">
+                  <User className="w-4 h-4" />
+                  <span>اختر المركز الصحي الذي ينتمي إليه المريض</span>
                 </p>
               </div>
 

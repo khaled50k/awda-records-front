@@ -149,15 +149,20 @@ const SearchablePatientInput: React.FC<SearchablePatientInputProps> = ({
                   className="p-3 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer border-b border-gray-100 dark:border-gray-600 last:border-b-0"
                   onClick={() => handlePatientSelect(patient)}
                 >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3 space-x-reverse">
-                      <User className="w-4 h-4 text-muted-foreground" />
-                      <span className="font-medium">{patient.full_name}</span>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3 space-x-reverse">
+                        <User className="w-4 h-4 text-muted-foreground" />
+                        <span className="font-medium">{patient.full_name}</span>
+                      </div>
+                      <Badge variant="outline" className="text-xs">
+                        <Hash className="w-3 h-3 ml-1" />
+                        {patient.national_id}
+                      </Badge>
                     </div>
-                    <Badge variant="outline" className="text-xs">
-                      <Hash className="w-3 h-3 ml-1" />
-                      {patient.national_id}
-                    </Badge>
+                    <div className="flex items-center space-x-2 space-x-reverse text-sm text-muted-foreground">
+                      <span>{patient.health_center?.label_ar || patient.health_center_code || 'غير محدد'}</span>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -168,11 +173,17 @@ const SearchablePatientInput: React.FC<SearchablePatientInputProps> = ({
       
       {selectedPatient && (
         <div className="mt-2 p-2 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-md">
-          <div className="flex items-center space-x-2 space-x-reverse">
-            <User className="w-4 h-4 text-green-600" />
-            <span className="text-sm font-medium text-green-800 dark:text-green-200">
-              تم اختيار: {selectedPatient.full_name} - {selectedPatient.national_id}
-            </span>
+          <div className="space-y-2">
+            <div className="flex items-center space-x-2 space-x-reverse">
+              <User className="w-4 h-4 text-green-600" />
+              <span className="text-sm font-medium text-green-800 dark:text-green-200">
+                تم اختيار: {selectedPatient.full_name} - {selectedPatient.national_id}
+              </span>
+            </div>
+            <div className="flex items-center space-x-2 space-x-reverse text-sm text-green-700 dark:text-green-300">
+              <Building2 className="w-3 h-3" />
+              <span>{selectedPatient.health_center?.label_ar || selectedPatient.health_center_code || 'غير محدد'}</span>
+            </div>
           </div>
         </div>
       )}
@@ -338,7 +349,6 @@ export const CreateMedicalRecordPage: React.FC = () => {
   const [formData, setFormData] = useState<CreateMedicalRecordRequest>({
     patient_id: 0,
     recipient_id: 0,
-    health_center_code: '',
     problem_type_code: '',
     status_code: '',
     transfer_notes: ''
@@ -347,7 +357,6 @@ export const CreateMedicalRecordPage: React.FC = () => {
   // Get options from static data
   const statusOptions = staticData?.status || [];
   const problemTypeOptions = staticData?.problem_type || [];
-  const healthCenterOptions = staticData?.health_center_type || [];
 
   useEffect(() => {
     // Don't fetch on page load - only fetch when user starts searching
@@ -403,14 +412,7 @@ export const CreateMedicalRecordPage: React.FC = () => {
       return;
     }
     
-    if (!formData.health_center_code) {
-      toast({
-        title: "خطأ في البيانات",
-        description: "يرجى اختيار مركز الرعاية الصحية",
-        variant: "destructive",
-      });
-      return;
-    }
+
     
     if (!formData.problem_type_code) {
       toast({
@@ -549,32 +551,9 @@ export const CreateMedicalRecordPage: React.FC = () => {
               </div>
               </div>
 
-              {/* Three Column Layout for Health Center, Problem Type, and Status */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {/* Health Center */}
-                <div className="space-y-3">
-                  <Label htmlFor="health_center_code" className="text-base font-semibold text-gray-700 dark:text-gray-300">
-                    مركز الرعاية الصحية <span className="text-red-500 text-lg">*</span>
-                  </Label>
-                  <Select
-                    value={formData.health_center_code}
-                    onValueChange={(value) => setFormData({ ...formData, health_center_code: value })}
-                    disabled={isLoading}
-                  >
-                    <SelectTrigger className="h-12">
-                      <SelectValue placeholder="اختر مركز الرعاية الصحية" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {healthCenterOptions.map((center) => (
-                        <SelectItem key={center.code} value={center.code}>
-                          <div className="flex items-center space-x-2 space-x-reverse">
-                            <span>{center.label_ar}</span>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+              {/* Two Column Layout for Problem Type and Status */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
 
                 {/* Problem Type */}
                 <div className="space-y-3">

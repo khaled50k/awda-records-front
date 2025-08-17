@@ -150,6 +150,13 @@ export const ViewMedicalRecordPage: React.FC = () => {
                    {record.patient?.gender_code === 'male' ? 'ذكر' : record.patient?.gender_code === 'female' ? 'أنثى' : 'غير محدد'}
                  </p>
                </div>
+               
+               <div className="space-y-2">
+                 <p className="text-sm font-medium text-gray-600">المركز الصحي</p>
+                 <p className="text-lg font-semibold text-gray-900">
+                   {record.patient?.health_center?.label_ar || record.patient?.health_center_code || 'غير محدد'}
+                 </p>
+               </div>
              </div>
            </CardContent>
          </Card>
@@ -164,12 +171,6 @@ export const ViewMedicalRecordPage: React.FC = () => {
            </CardHeader>
            <CardContent className="p-6">
              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-               {/* Health Center */}
-               <div className="space-y-2">
-                 <p className="text-sm font-medium text-gray-600">مركز الرعاية الصحية</p>
-                 <p className="text-lg font-semibold text-gray-900">{record.health_center?.label_ar || 'غير محدد'}</p>
-               </div>
-
                {/* Problem Type */}
                <div className="space-y-2">
                  <p className="text-sm font-medium text-gray-600">نوع المشكلة</p>
