@@ -17,6 +17,7 @@ export interface TransferState {
   currentTransfer: RecordTransfer | null;
   loading: boolean;
   error: string | null;
+  fieldErrors: Record<string, string[]>;
   pagination: {
     currentPage: number;
     perPage: number;
@@ -40,6 +41,7 @@ const initialState: TransferState = {
   currentTransfer: null,
   loading: false,
   error: null,
+  fieldErrors: {},
   pagination: {
     currentPage: 1,
     perPage: 15,
@@ -156,8 +158,18 @@ export const createTransferAsync = createAsyncThunk(
     try {
       const response = await transferService.createTransfer(transferData);
       return response;
-    } catch (error: any) {
-      return rejectWithValue(error.message || 'Failed to create transfer');
+    } catch (error: unknown) {
+      if (error && typeof error === 'object' && 'data' in error) {
+        const apiError = error as { message: string; data: { data: Record<string, string[]> } };
+        return rejectWithValue({
+          message: apiError.message || 'Failed to create transfer',
+          fieldErrors: apiError.data?.data || {}
+        });
+      }
+      return rejectWithValue({
+        message: 'Failed to create transfer',
+        fieldErrors: {}
+      });
     }
   }
 );
@@ -169,8 +181,18 @@ export const updateTransferAsync = createAsyncThunk(
     try {
       const response = await transferService.updateTransfer(id, transferData);
       return response;
-    } catch (error: any) {
-      return rejectWithValue(error.message || 'Failed to update transfer');
+    } catch (error: unknown) {
+      if (error && typeof error === 'object' && 'data' in error) {
+        const apiError = error as { message: string; data: { data: Record<string, string[]> } };
+        return rejectWithValue({
+          message: apiError.message || 'Failed to update transfer',
+          fieldErrors: apiError.data?.data || {}
+        });
+      }
+      return rejectWithValue({
+        message: 'Failed to update transfer',
+        fieldErrors: {}
+      });
     }
   }
 );
@@ -227,6 +249,11 @@ export const transferSlice = createSlice({
       state.error = null;
     },
     
+    // Clear field errors
+    clearFieldErrors: (state) => {
+      state.fieldErrors = {};
+    },
+    
     // Set current transfer
     setCurrentTransfer: (state, action: PayloadAction<RecordTransfer>) => {
       state.currentTransfer = action.payload;
@@ -277,6 +304,7 @@ export const transferSlice = createSlice({
       state.currentTransfer = null;
       state.loading = false;
       state.error = null;
+      state.fieldErrors = {};
       state.pagination = {
         currentPage: 1,
         perPage: 15,
@@ -445,9 +473,11 @@ export const transferSlice = createSlice({
       .addCase(createTransferAsync.pending, (state) => {
         state.loading = true;
         state.error = null;
+        state.fieldErrors = {};
       })
       .addCase(createTransferAsync.fulfilled, (state, action: PayloadAction<ApiResponse<{ transfer: RecordTransfer }>>) => {
         state.loading = false;
+        state.fieldErrors = {};
         if (action.payload.success && action.payload.data) {
           // Add new transfer to the list
           state.transfers.unshift(action.payload.data.transfer);
@@ -456,16 +486,25 @@ export const transferSlice = createSlice({
       })
       .addCase(createTransferAsync.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload as string;
+        if (action.payload && typeof action.payload === 'object' && 'message' in action.payload) {
+          const payload = action.payload as { message: string; fieldErrors?: Record<string, string[]> };
+          state.error = payload.message;
+          state.fieldErrors = payload.fieldErrors || {};
+        } else {
+          state.error = action.payload as string;
+          state.fieldErrors = {};
+        }
       })
       
       // Update transfer
       .addCase(updateTransferAsync.pending, (state) => {
         state.loading = true;
         state.error = null;
+        state.fieldErrors = {};
       })
       .addCase(updateTransferAsync.fulfilled, (state, action: PayloadAction<ApiResponse<{ transfer: RecordTransfer }>>) => {
         state.loading = false;
+        state.fieldErrors = {};
         if (action.payload.success && action.payload.data) {
           const updatedTransfer = action.payload.data.transfer;
           // Update transfer in the list
@@ -481,7 +520,14 @@ export const transferSlice = createSlice({
       })
       .addCase(updateTransferAsync.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload as string;
+        if (action.payload && typeof action.payload === 'object' && 'message' in action.payload) {
+          const payload = action.payload as { message: string; fieldErrors?: Record<string, string[]> };
+          state.error = payload.message;
+          state.fieldErrors = payload.fieldErrors || {};
+        } else {
+          state.error = action.payload as string;
+          state.fieldErrors = {};
+        }
       })
       
       // Delete transfer
@@ -561,6 +607,7 @@ export const transferSlice = createSlice({
 
 export const { 
   clearError, 
+  clearFieldErrors,
   setCurrentTransfer, 
   setPagination, 
   setFilters, 

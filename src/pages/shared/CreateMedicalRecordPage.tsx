@@ -2,9 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { RootState, useAppDispatch } from '../../store';
-import { createMedicalRecordAsync } from '../../store/slices/medicalRecordSlice';
+import { createMedicalRecordAsync, clearFieldErrors } from '../../store/slices/medicalRecordSlice';
 import { getPatientsAsync } from '../../store/slices/patientSlice';
 import { getUsersAsync } from '../../store/slices/userSlice';
+import { useRoleAccess } from '../../hooks/useRoleAccess';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -344,15 +345,17 @@ export const CreateMedicalRecordPage: React.FC = () => {
   const { patients, loading: patientsLoading } = useSelector((state: RootState) => state.patients);
   const { users, loading: usersLoading } = useSelector((state: RootState) => state.users);
   const { staticData } = useSelector((state: RootState) => state.staticData);
+  const { fieldErrors } = useSelector((state: RootState) => state.medicalRecords);
+  const { isAdmin } = useRoleAccess();
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState<CreateMedicalRecordRequest>({
     patient_id: 0,
-    recipient_id: 0,
     problem_type_code: '',
     danger_level_code: '',
-    reviewed_party_user_id: 0,
+    reviewed_party: '',
     status_code: '',
+    recipient_id: undefined,
     transfer_notes: ''
   });
 
@@ -397,7 +400,10 @@ export const CreateMedicalRecordPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Form validation - all fields are required
+    // Clear any previous field errors
+    dispatch(clearFieldErrors());
+    
+    // Form validation - all required fields
     if (!formData.patient_id) {
       toast({
         title: "خطأ في البيانات",
@@ -407,21 +413,28 @@ export const CreateMedicalRecordPage: React.FC = () => {
       return;
     }
     
-    if (!formData.recipient_id) {
-      toast({
-        title: "خطأ في البيانات",
-        description: "يرجى اختيار المستلم",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-
-    
     if (!formData.problem_type_code) {
       toast({
         title: "خطأ في البيانات",
         description: "يرجى اختيار نوع المشكلة",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!formData.danger_level_code) {
+      toast({
+        title: "خطأ في البيانات",
+        description: "يرجى اختيار مستوى الخطر",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!formData.reviewed_party.trim()) {
+      toast({
+        title: "خطأ في البيانات",
+        description: "يرجى إدخال المُدقق عليه",
         variant: "destructive",
       });
       return;
@@ -506,6 +519,13 @@ export const CreateMedicalRecordPage: React.FC = () => {
                   patients={patients}
                   disabled={false}
                 />
+                {fieldErrors.patient_id && (
+                  <div className="text-red-500 text-sm mt-1">
+                    {fieldErrors.patient_id.map((error, index) => (
+                      <div key={index}>{error}</div>
+                    ))}
+                  </div>
+                )}
                                  <p className="text-sm text-muted-foreground flex items-center space-x-2 space-x-reverse">
                    <User className="w-4 h-4" />
                    <span>اختر المريض من القائمة أو ابحث بالاسم أو رقم الهوية</span>
@@ -536,23 +556,25 @@ export const CreateMedicalRecordPage: React.FC = () => {
                   )}
               </div>
 
-              {/* Recipient Selection */}
+                                            {/* Recipient Selection - Only for Admin */}
+                 {isAdmin && (
               <div className="space-y-3">
                 <Label htmlFor="recipient_id" className="text-base font-semibold text-gray-700 dark:text-gray-300">
-                  المستلم <span className="text-red-500 text-lg">*</span>
+                     المستلم (اختياري)
                 </Label>
                 <SearchableRecipientInput
                   value={formData.recipient_id || null}
-                  onChange={(value) => setFormData({ ...formData, recipient_id: value || 0 })}
+                     onChange={(value) => setFormData({ ...formData, recipient_id: value || undefined })}
                   placeholder="البحث عن المستلم..."
                   users={users}
                   disabled={false}
                 />
                 <p className="text-sm text-muted-foreground flex items-center space-x-2 space-x-reverse">
                   <User className="w-4 h-4" />
-                  <span>اختر المستلم الذي سيتم إرسال السجل إليه</span>
+                     <span>اختر المستلم الذي سيتم إرسال السجل إليه (اختياري للمدير)</span>
                 </p>
               </div>
+               )}
               </div>
 
               {/* Two Column Layout for Problem Type and Status */}
@@ -569,7 +591,7 @@ export const CreateMedicalRecordPage: React.FC = () => {
                     onValueChange={(value) => setFormData({ ...formData, problem_type_code: value })}
                     disabled={isLoading}
                   >
-                    <SelectTrigger className="h-12">
+                    <SelectTrigger className={cn("h-12", fieldErrors.problem_type_code ? "border-red-500" : "")}>
                       <SelectValue placeholder="اختر نوع المشكلة" />
                     </SelectTrigger>
                     <SelectContent>
@@ -582,6 +604,13 @@ export const CreateMedicalRecordPage: React.FC = () => {
                       ))}
                     </SelectContent>
                   </Select>
+                  {fieldErrors.problem_type_code && (
+                    <div className="text-red-500 text-sm mt-1">
+                      {fieldErrors.problem_type_code.map((error, index) => (
+                        <div key={index}>{error}</div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 {/* Status */}
@@ -594,7 +623,7 @@ export const CreateMedicalRecordPage: React.FC = () => {
                     onValueChange={(value) => setFormData({ ...formData, status_code: value })}
                     disabled={isLoading}
                   >
-                    <SelectTrigger className="h-12">
+                    <SelectTrigger className={cn("h-12", fieldErrors.status_code ? "border-red-500" : "")}>
                       <SelectValue placeholder="اختر الحالة" />
                     </SelectTrigger>
                     <SelectContent>
@@ -605,6 +634,13 @@ export const CreateMedicalRecordPage: React.FC = () => {
                       ))}
                     </SelectContent>
                   </Select>
+                  {fieldErrors.status_code && (
+                    <div className="text-red-500 text-sm mt-1">
+                      {fieldErrors.status_code.map((error, index) => (
+                        <div key={index}>{error}</div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -613,14 +649,14 @@ export const CreateMedicalRecordPage: React.FC = () => {
                 {/* Danger Level */}
                 <div className="space-y-3">
                   <Label htmlFor="danger_level_code" className="text-base font-semibold text-gray-700 dark:text-gray-300">
-                    مستوى الخطر
+                    مستوى الخطر <span className="text-red-500 text-lg">*</span>
                   </Label>
                   <Select
-                    value={formData.danger_level_code || ''}
+                    value={formData.danger_level_code}
                     onValueChange={(value) => setFormData({ ...formData, danger_level_code: value })}
                     disabled={isLoading}
                   >
-                    <SelectTrigger className="h-12">
+                    <SelectTrigger className={cn("h-12", fieldErrors.danger_level_code ? "border-red-500" : "")}>
                       <SelectValue placeholder="اختر مستوى الخطر" />
                     </SelectTrigger>
                     <SelectContent>
@@ -631,22 +667,38 @@ export const CreateMedicalRecordPage: React.FC = () => {
                       ))}
                     </SelectContent>
                   </Select>
+                  {fieldErrors.danger_level_code && (
+                    <div className="text-red-500 text-sm mt-1">
+                      {fieldErrors.danger_level_code.map((error, index) => (
+                        <div key={index}>{error}</div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 {/* Reviewed Party */}
                 <div className="space-y-3">
-                  <Label htmlFor="reviewed_party_user_id" className="text-base font-semibold text-gray-700 dark:text-gray-300">
-المُدقق عليه                  </Label>
-                  <SearchableRecipientInput
-                    value={formData.reviewed_party_user_id || null}
-                    onChange={(value) => setFormData({ ...formData, reviewed_party_user_id: value || 0 })}
-                    placeholder="البحث عن المُدقق عليه..."
-                    users={users}
-                    disabled={false}
+                  <Label htmlFor="reviewed_party" className="text-base font-semibold text-gray-700 dark:text-gray-300">
+                    المُدقق عليه <span className="text-red-500 text-lg">*</span>
+                  </Label>
+                  <Input
+                    id="reviewed_party"
+                    value={formData.reviewed_party}
+                    onChange={(e) => setFormData({ ...formData, reviewed_party: e.target.value })}
+                    placeholder="أدخل المُدقق عليه..."
+                    disabled={isLoading}
+                    className={cn("h-12", fieldErrors.reviewed_party ? "border-red-500" : "")}
                   />
+                  {fieldErrors.reviewed_party && (
+                    <div className="text-red-500 text-sm mt-1">
+                      {fieldErrors.reviewed_party.map((error, index) => (
+                        <div key={index}>{error}</div>
+                      ))}
+                    </div>
+                  )}
                   <p className="text-sm text-muted-foreground flex items-center space-x-2 space-x-reverse">
                     <User className="w-4 h-4" />
-                    <span>اختر المُدقق عليه </span>
+                    <span>أدخل اسم المُدقق عليه (مطلوب)</span>
                   </p>
                 </div>
               </div>
@@ -656,15 +708,22 @@ export const CreateMedicalRecordPage: React.FC = () => {
                 <Label htmlFor="transfer_notes" className="text-base font-semibold text-gray-700 dark:text-gray-300">
                   ملاحظات التحويل <span className="text-red-500 text-lg">*</span>
                 </Label>
-                <Textarea
-                  id="transfer_notes"
-                  value={formData.transfer_notes}
-                  onChange={(e) => setFormData({ ...formData, transfer_notes: e.target.value })}
-                  placeholder="أدخل ملاحظات التحويل..."
-                  rows={10}
-                  disabled={isLoading}
-                  className="resize-none text-base"
-                />
+                                 <Textarea
+                   id="transfer_notes"
+                   value={formData.transfer_notes}
+                   onChange={(e) => setFormData({ ...formData, transfer_notes: e.target.value })}
+                   placeholder="أدخل ملاحظات التحويل..."
+                   rows={10}
+                   disabled={isLoading}
+                   className={cn("resize-none text-base", fieldErrors.transfer_notes ? "border-red-500" : "")}
+                 />
+                 {fieldErrors.transfer_notes && (
+                   <div className="text-red-500 text-sm mt-1">
+                     {fieldErrors.transfer_notes.map((error, index) => (
+                       <div key={index}>{error}</div>
+                     ))}
+                   </div>
+                 )}
            
               </div>
 

@@ -142,6 +142,14 @@ type Toast = Omit<ToasterToast, "id">
 function toast({ ...props }: Toast) {
   const id = genId()
 
+  // Apply default styling for success toasts (when no variant is specified)
+  const defaultProps = {
+    ...props,
+    className: props.variant === 'destructive' 
+      ? props.className 
+      : props.className || "bg-green-600 border-green-700 text-white border shadow-lg"
+  }
+
   const update = (props: ToasterToast) =>
     dispatch({
       type: "UPDATE_TOAST",
@@ -152,7 +160,7 @@ function toast({ ...props }: Toast) {
   dispatch({
     type: "ADD_TOAST",
     toast: {
-      ...props,
+      ...defaultProps,
       id,
       open: true,
       onOpenChange: (open) => {

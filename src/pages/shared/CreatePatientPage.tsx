@@ -66,7 +66,7 @@ export const CreatePatientPage: React.FC = () => {
     if (!formData.health_center_code) {
       toast({
         title: "خطأ في البيانات",
-        description: "يرجى اختيار المركز الصحي",
+        description: "يرجى اختيار اسم المرفق",
         variant: "destructive",
       });
       return;
@@ -191,14 +191,14 @@ export const CreatePatientPage: React.FC = () => {
               {/* Health Center */}
               <div className="space-y-3">
                 <Label htmlFor="health_center_code" className="text-base font-semibold text-gray-700 dark:text-gray-300">
-                  المركز الصحي <span className="text-red-500 text-lg">*</span>
+                  اسم المرفق <span className="text-red-500 text-lg">*</span>
                 </Label>
                 <Select
                   value={formData.health_center_code}
                   onValueChange={(value) => setFormData({ ...formData, health_center_code: value })}
                 >
                   <SelectTrigger className="h-12">
-                    <SelectValue placeholder="اختر المركز الصحي" />
+                    <SelectValue placeholder="اختر اسم المرفق" />
                   </SelectTrigger>
                   <SelectContent>
                     {healthCenterOptions.map((center) => (
@@ -210,7 +210,7 @@ export const CreatePatientPage: React.FC = () => {
                 </Select>
                 <p className="text-sm text-muted-foreground flex items-center space-x-2 space-x-reverse">
                   <User className="w-4 h-4" />
-                  <span>اختر المركز الصحي الذي ينتمي إليه المريض</span>
+                  <span>اختر اسم المرفق الذي ينتمي إليه المريض</span>
                 </p>
               </div>
 

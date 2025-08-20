@@ -26,6 +26,7 @@ export interface StaticDataState {
   staticDataTypes: string[];
   loading: boolean;
   error: string | null;
+  fieldErrors: Record<string, string[]>;
   pagination: {
     current_page: number;
     last_page: number;
@@ -54,6 +55,7 @@ const initialState: StaticDataState = {
   staticDataTypes: [],
   loading: false,
   error: null,
+  fieldErrors: {},
   pagination: {
     current_page: 1,
     last_page: 1,
@@ -162,8 +164,17 @@ export const createStaticDataAsync = createAsyncThunk(
       const response = await staticDataService.createStaticData(data);
       return response;
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to create static data';
-      return rejectWithValue(errorMessage);
+      if (error && typeof error === 'object' && 'data' in error) {
+        const apiError = error as { message: string; data: { data: Record<string, string[]> } };
+        return rejectWithValue({
+          message: apiError.message || 'Failed to create static data',
+          fieldErrors: apiError.data?.data || {}
+        });
+      }
+      return rejectWithValue({
+        message: 'Failed to create static data',
+        fieldErrors: {}
+      });
     }
   }
 );
@@ -176,8 +187,17 @@ export const updateStaticDataAsync = createAsyncThunk(
       const response = await staticDataService.updateStaticData(id, data);
       return response;
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to update static data';
-      return rejectWithValue(errorMessage);
+      if (error && typeof error === 'object' && 'data' in error) {
+        const apiError = error as { message: string; data: { data: Record<string, string[]> } };
+        return rejectWithValue({
+          message: apiError.message || 'Failed to update static data',
+          fieldErrors: apiError.data?.data || {}
+        });
+      }
+      return rejectWithValue({
+        message: 'Failed to update static data',
+        fieldErrors: {}
+      });
     }
   }
 );
@@ -293,6 +313,11 @@ export const staticDataSlice = createSlice({
       state.error = null;
     },
     
+    // Clear field errors
+    clearFieldErrors: (state) => {
+      state.fieldErrors = {};
+    },
+    
     // Clear cache for specific type
     clearCache: (state, action: PayloadAction<string | undefined>) => {
       if (action.payload) {
@@ -318,6 +343,7 @@ export const staticDataSlice = createSlice({
       state.staticDataTypes = [];
       state.loading = false;
       state.error = null;
+      state.fieldErrors = {};
       state.pagination = {
         current_page: 1,
         last_page: 1,
@@ -444,28 +470,46 @@ export const staticDataSlice = createSlice({
       .addCase(createStaticDataAsync.pending, (state) => {
         state.loading = true;
         state.error = null;
+        state.fieldErrors = {};
       })
       .addCase(createStaticDataAsync.fulfilled, (state, action: PayloadAction<ApiResponse<StaticData>>) => {
         state.loading = false;
+        state.fieldErrors = {};
         // No caching for individual items
       })
       .addCase(createStaticDataAsync.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload as string;
+        if (action.payload && typeof action.payload === 'object' && 'message' in action.payload) {
+          const payload = action.payload as { message: string; fieldErrors?: Record<string, string[]> };
+          state.error = payload.message;
+          state.fieldErrors = payload.fieldErrors || {};
+        } else {
+          state.error = action.payload as string;
+          state.fieldErrors = {};
+        }
       })
       
       // Update static data
       .addCase(updateStaticDataAsync.pending, (state) => {
         state.loading = true;
         state.error = null;
+        state.fieldErrors = {};
       })
       .addCase(updateStaticDataAsync.fulfilled, (state, action: PayloadAction<ApiResponse<StaticData>>) => {
         state.loading = false;
+        state.fieldErrors = {};
         // No caching for individual items
       })
       .addCase(updateStaticDataAsync.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload as string;
+        if (action.payload && typeof action.payload === 'object' && 'message' in action.payload) {
+          const payload = action.payload as { message: string; fieldErrors?: Record<string, string[]> };
+          state.error = payload.message;
+          state.fieldErrors = payload.fieldErrors || {};
+        } else {
+          state.error = action.payload as string;
+          state.fieldErrors = {};
+        }
       })
       
       // Toggle static data status
@@ -602,6 +646,7 @@ export const staticDataSlice = createSlice({
 
 export const { 
   clearError, 
+  clearFieldErrors,
   clearCache, 
   refreshCache, 
   resetStaticDataState 

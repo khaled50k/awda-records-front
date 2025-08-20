@@ -32,6 +32,7 @@ import { EmployeeDashboardPage } from './pages/employee/EmployeeDashboardPage';
 import { Toaster } from './components/ui/toaster';
 import { Toaster as Sonner } from './components/ui/sonner';
 import { useAuth } from './hooks/useAuth';
+import { useStaticData } from './hooks/useStaticData';
 
 const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { theme } = useSelector((state: RootState) => state.ui);
@@ -45,6 +46,7 @@ const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =>
 
 const AppContent: React.FC = () => {
   const { initializeAuthState } = useAuth();
+  const { LoadingOverlay } = useStaticData();
 
   // Initialize authentication state on app load
   useEffect(() => {
@@ -53,6 +55,9 @@ const AppContent: React.FC = () => {
 
   return (
     <ThemeProvider>
+      {/* Show loading overlay while static data is being fetched */}
+      <LoadingOverlay />
+      
       <BrowserRouter>
         <div className="font-cairo">
           <Routes>

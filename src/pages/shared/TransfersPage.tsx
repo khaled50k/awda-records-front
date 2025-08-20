@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useSelector } from 'react-redux';
 import { RootState, useAppDispatch } from '../../store';
 import { useAuth } from '../../hooks/useAuth';
-import { 
+import {
   getTransfersAsync,
   deleteTransferAsync,
   receiveTransferAsync,
@@ -16,8 +16,8 @@ import { Badge } from '../../components/ui/badge';
 import { Input } from '../../components/ui/input';
 import { EnhancedDataTable } from '../../components/ui/enhanced-data-table';
 import { Plus, Send, Download, Eye, Trash2, Search, CheckCircle, Clock, User, FileText } from 'lucide-react';
-import { RecordTransfer, MedicalRecord, User as UserType } from '../../types/api';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../../components/ui/dialog';
+import { RecordTransfer, MedicalRecord, User as UserType, StaticDataGroup } from '../../types/api';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '../../components/ui/dialog';
 import { Label } from '../../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { toast, useToast } from '../../hooks/use-toast';
@@ -56,6 +56,29 @@ interface SearchableRecipientInputProps extends SearchableInputProps {
 
 interface TransfersPageProps {
   userRole: 'admin' | 'employee';
+}
+
+interface FormDialogProps {
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
+  title: string;
+  formData: {
+    record_id: number;
+    recipient_id: number | null;
+    status_code: string;
+    transfer_notes: string;
+  };
+  onSubmit: (data: {
+    record_id: number;
+    recipient_id: number | null;
+    status_code: string;
+    transfer_notes: string;
+  }) => void;
+  isLoading: boolean;
+  medicalRecords: MedicalRecord[];
+  users: UserType[];
+  staticData: StaticDataGroup | null;
+  currentTransferData: RecordTransfer | null;
 }
 
 // ============================================================================
@@ -103,12 +126,12 @@ const getTransferStatusBadge = (transfer: RecordTransfer): JSX.Element => {
   }
 
   // Pending transfers (not received, not replied, not completed)
-    return (
-      <Badge className="bg-yellow-100 text-yellow-800 text-xs px-2 py-1">
-        <Clock className="w-3 h-3 ml-1" />
-        في الانتظار
-      </Badge>
-    );
+  return (
+    <Badge className="bg-yellow-100 text-yellow-800 text-xs px-2 py-1">
+      <Clock className="w-3 h-3 ml-1" />
+      في الانتظار
+    </Badge>
+  );
 };
 
 // ============================================================================
@@ -566,12 +589,12 @@ const TransferActions: React.FC<{
           size="sm"
           onClick={() => onSend(record)}
           className="text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50"
-          title="إرسال السجل إلى مستخدم آخر"
+          title="تحويل الملاحظة إلى صاحب العلاقة"
         >
           <Send className="w-4 h-4" />
         </Button>
       )}
-   
+
     </div>
   );
 };
@@ -588,13 +611,13 @@ export const TransfersPage: React.FC<TransfersPageProps> = ({ userRole }) => {
   const { medicalRecords } = useSelector((state: RootState) => state.medicalRecords);
   const { users } = useSelector((state: RootState) => state.users);
   const { staticData } = useSelector((state: RootState) => state.staticData);
-  
+
 
 
   useEffect(() => {
     dispatch(getTransfersAsync({ page: 1, perPage: 15 }));
-      dispatch(getMedicalRecordsAsync({ page: 1, perPage: 100 }));
-      dispatch(getUsersAsync({ page: 1, perPage: 100 }));
+    dispatch(getMedicalRecordsAsync({ page: 1, perPage: 100 }));
+    dispatch(getUsersAsync({ page: 1, perPage: 100 }));
   }, [dispatch]);
 
   const transferStats = useMemo((): TransferStats => {
@@ -667,6 +690,14 @@ export const TransfersPage: React.FC<TransfersPageProps> = ({ userRole }) => {
     navigate(`/admin/transfers/${transfer.transfer_id}`);
   }, [navigate]);
 
+  const [isViewTransferNotes, setIsViewTransferNotes] = useState(false);
+  const [selectedTransferNotes, setSelectedTransferNotes] = useState<string>('');
+
+  const handleViewTransferNotes = (notes: string) => {
+    setSelectedTransferNotes(notes);
+    setIsViewTransferNotes(true);
+  };
+
   const columns = useMemo(() => [
     {
       key: 'medical_record.patient.full_name',
@@ -674,7 +705,7 @@ export const TransfersPage: React.FC<TransfersPageProps> = ({ userRole }) => {
       exportable: true,
       render: (_: unknown, record: RecordTransfer) => {
         const isForCurrentUser = user?.user?.username === record.recipient?.username && user?.user?.role_code === 'admin';
-        
+
         return (
           <div className={`flex items-center space-x-2 space-x-reverse`}>
             <span className={`font-medium ${isForCurrentUser ? 'text-blue-700' : ''}`}>
@@ -690,7 +721,7 @@ export const TransfersPage: React.FC<TransfersPageProps> = ({ userRole }) => {
       exportable: true,
       render: (_: unknown, record: RecordTransfer) => {
         const isForCurrentUser = user?.user?.username === record.recipient?.username && user?.user?.role_code === 'admin';
-        
+
         return (
           <div className={`flex items-center space-x-2 space-x-reverse`}>
             <span className={`font-medium ${isForCurrentUser ? 'text-blue-700' : ''}`}>
@@ -706,7 +737,7 @@ export const TransfersPage: React.FC<TransfersPageProps> = ({ userRole }) => {
       exportable: true,
       render: (_: unknown, record: RecordTransfer) => {
         const isForCurrentUser = user?.user?.username === record.recipient?.username && user?.user?.role_code === 'admin';
-        
+
         return (
           <div className={`flex items-center space-x-2 space-x-reverse`}>
             <span className={`font-medium ${isForCurrentUser ? 'text-blue-700' : ''}`}>
@@ -723,14 +754,42 @@ export const TransfersPage: React.FC<TransfersPageProps> = ({ userRole }) => {
       exportable: true,
       render: (_: unknown, record: RecordTransfer) => {
         const isForCurrentUser = user?.user?.username === record.recipient?.username && user?.user?.role_code === 'admin';
-        
+
         return (
           <div className={`flex items-center space-x-2 space-x-reverse`}>
-            <Badge className={`text-xs px-2 py-1 ${
-              isForCurrentUser ? 'bg-blue-200 text-blue-800' : 'bg-blue-100 text-blue-800'
-            }`}>
+            <Badge className={`text-xs px-2 py-1 ${isForCurrentUser ? 'bg-blue-200 text-blue-800' : 'bg-blue-100 text-blue-800'
+              }`}>
               {record.medical_record.status?.label_ar || 'غير محدد'}
             </Badge>
+          </div>
+        );
+      },
+    },
+    {
+      key: 'transfer_status_code',
+      label: 'حالة المستقبل',
+      exportable: true,
+      render: (_: unknown, record: RecordTransfer) => {
+        const isForCurrentUser = user?.user?.username === record.recipient?.username && user?.user?.role_code === 'admin';
+
+        return (
+          <div className={`flex items-center space-x-2 space-x-reverse`}>
+
+
+            <Badge className={`text-xs px-2 py-1 ${isForCurrentUser ? 'bg-blue-200 text-blue-800' : 'bg-blue-100 text-blue-800'
+              }`}>
+              {record?.medical_record?.transfer_status?.label_ar || 'غير محدد'}
+            </Badge>
+            {record.transfer_notes && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => handleViewTransferNotes(record.transfer_notes)}
+              >
+                <Eye className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                />
+              </Button>
+            )}
           </div>
         );
       },
@@ -740,8 +799,8 @@ export const TransfersPage: React.FC<TransfersPageProps> = ({ userRole }) => {
       label: 'تاريخ الإرسال',
       exportable: true,
       render: (_: unknown, record: RecordTransfer) => {
-        const isForCurrentUser = user?.user?.username === record.recipient?.username && user?.user?.role_code  === 'admin';
-        
+        const isForCurrentUser = user?.user?.username === record.recipient?.username && user?.user?.role_code === 'admin';
+
         return (
           <div className={`flex items-center space-x-2 space-x-reverse`}>
             <span className={isForCurrentUser ? 'text-blue-700' : ''}>
@@ -814,9 +873,38 @@ export const TransfersPage: React.FC<TransfersPageProps> = ({ userRole }) => {
         </CardContent>
       </Card>
 
+      {/* Transfer Notes Modal */}
+      <Dialog open={isViewTransferNotes} onOpenChange={setIsViewTransferNotes}>
+        <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2 space-x-reverse">
+              <FileText className="w-5 h-5 text-blue-600" />
+              <span>ملاحظات التحويل</span>
+            </DialogTitle>
+          </DialogHeader>
 
+          <div className="space-y-4">
+            <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+              <h4 className="font-semibold text-blue-900 mb-2">الملاحظات:</h4>
+              <div className="text-blue-800 whitespace-pre-wrap leading-relaxed">
+                {selectedTransferNotes}
+              </div>
+            </div>
 
+            <div className="text-sm text-gray-600">
+              <p className="mb-2">
+                <span className="font-medium">ملاحظة:</span> هذه الملاحظات تم إدخالها عند إنشاء التحويل.
+              </p>
+            </div>
+          </div>
 
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsViewTransferNotes(false)}>
+              إغلاق
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

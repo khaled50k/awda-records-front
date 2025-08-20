@@ -188,7 +188,7 @@ export const ViewPatientPage: React.FC = () => {
               </div>
 
               <div className="space-y-2">
-                <p className="text-sm font-medium text-gray-600">المركز الصحي</p>
+                <p className="text-sm font-medium text-gray-600">اسم المرفق</p>
                 <div className="flex items-center space-x-2 space-x-reverse">
                   <Building2 className="w-4 h-4 text-green-600" />
                   <span className="text-lg font-semibold text-gray-900">

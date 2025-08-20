@@ -17,6 +17,7 @@ export interface UserState {
   currentUser: User | null;
   loading: boolean;
   error: string | null;
+  fieldErrors: Record<string, string[]>;
   pagination: {
     currentPage: number;
     perPage: number;
@@ -39,6 +40,7 @@ const initialState: UserState = {
   currentUser: null,
   loading: false,
   error: null,
+  fieldErrors: {},
   pagination: {
     currentPage: 1,
     perPage: 15,
@@ -63,8 +65,11 @@ export const getUsersAsync = createAsyncThunk(
     try {
       const response = await userService.getUsers(params);
       return response;
-    } catch (error: any) {
-      return rejectWithValue(error.message || 'Failed to fetch users');
+    } catch (error: unknown) {
+      if (error && typeof error === 'object' && 'message' in error) {
+        return rejectWithValue((error as { message: string }).message || 'Failed to fetch users');
+      }
+      return rejectWithValue('Failed to fetch users');
     }
   }
 );
@@ -76,8 +81,11 @@ export const searchUsersAsync = createAsyncThunk(
     try {
       const response = await userService.searchUsers(params);
       return response;
-    } catch (error: any) {
-      return rejectWithValue(error.message || 'Failed to search users');
+    } catch (error: unknown) {
+      if (error && typeof error === 'object' && 'message' in error) {
+        return rejectWithValue((error as { message: string }).message || 'Failed to search users');
+      }
+      return rejectWithValue('Failed to search users');
     }
   }
 );
@@ -89,8 +97,11 @@ export const getUserAsync = createAsyncThunk(
     try {
       const response = await userService.getUser(id);
       return response;
-    } catch (error: any) {
-      return rejectWithValue(error.message || 'Failed to fetch user');
+    } catch (error: unknown) {
+      if (error && typeof error === 'object' && 'message' in error) {
+        return rejectWithValue((error as { message: string }).message || 'Failed to fetch user');
+      }
+      return rejectWithValue('Failed to fetch user');
     }
   }
 );
@@ -102,8 +113,18 @@ export const createUserAsync = createAsyncThunk(
     try {
       const response = await userService.createUser(userData);
       return response;
-    } catch (error: any) {
-      return rejectWithValue(error.message || 'Failed to create user');
+    } catch (error: unknown) {
+      if (error && typeof error === 'object' && 'data' in error) {
+        const apiError = error as { message: string; data: { data: Record<string, string[]> } };
+        return rejectWithValue({
+          message: apiError.message || 'Failed to create user',
+          fieldErrors: apiError.data?.data || {}
+        });
+      }
+      return rejectWithValue({
+        message: 'Failed to create user',
+        fieldErrors: {}
+      });
     }
   }
 );
@@ -115,8 +136,18 @@ export const updateUserAsync = createAsyncThunk(
     try {
       const response = await userService.updateUser(id, userData);
       return response;
-    } catch (error: any) {
-      return rejectWithValue(error.message || 'Failed to update user');
+    } catch (error: unknown) {
+      if (error && typeof error === 'object' && 'data' in error) {
+        const apiError = error as { message: string; data: { data: Record<string, string[]> } };
+        return rejectWithValue({
+          message: apiError.message || 'Failed to update user',
+          fieldErrors: apiError.data?.data || {}
+        });
+      }
+      return rejectWithValue({
+        message: 'Failed to update user',
+        fieldErrors: {}
+      });
     }
   }
 );
@@ -128,8 +159,11 @@ export const deleteUserAsync = createAsyncThunk(
     try {
       const response = await userService.deleteUser(id);
       return response;
-    } catch (error: any) {
-      return rejectWithValue(error.message || 'Failed to delete user');
+    } catch (error: unknown) {
+      if (error && typeof error === 'object' && 'message' in error) {
+        return rejectWithValue((error as { message: string }).message || 'Failed to delete user');
+      }
+      return rejectWithValue('Failed to delete user');
     }
   }
 );
@@ -145,6 +179,11 @@ export const userSlice = createSlice({
     // Clear error
     clearError: (state) => {
       state.error = null;
+    },
+    
+    // Clear field errors
+    clearFieldErrors: (state) => {
+      state.fieldErrors = {};
     },
     
     // Set current user
@@ -193,6 +232,7 @@ export const userSlice = createSlice({
       state.currentUser = null;
       state.loading = false;
       state.error = null;
+      state.fieldErrors = {};
       state.pagination = {
         currentPage: 1,
         perPage: 15,
@@ -272,9 +312,11 @@ export const userSlice = createSlice({
       .addCase(createUserAsync.pending, (state) => {
         state.loading = true;
         state.error = null;
+        state.fieldErrors = {};
       })
       .addCase(createUserAsync.fulfilled, (state, action: PayloadAction<ApiResponse<{ user: User }>>) => {
         state.loading = false;
+        state.fieldErrors = {};
         if (action.payload.success && action.payload.data) {
           // Add new user to the list
           state.users.unshift(action.payload.data.user);
@@ -283,16 +325,25 @@ export const userSlice = createSlice({
       })
       .addCase(createUserAsync.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload as string;
+        if (action.payload && typeof action.payload === 'object' && 'message' in action.payload) {
+          const payload = action.payload as { message: string; fieldErrors?: Record<string, string[]> };
+          state.error = payload.message;
+          state.fieldErrors = payload.fieldErrors || {};
+        } else {
+          state.error = action.payload as string;
+          state.fieldErrors = {};
+        }
       })
       
       // Update user
       .addCase(updateUserAsync.pending, (state) => {
         state.loading = true;
         state.error = null;
+        state.fieldErrors = {};
       })
       .addCase(updateUserAsync.fulfilled, (state, action: PayloadAction<ApiResponse<{ user: User }>>) => {
         state.loading = false;
+        state.fieldErrors = {};
         if (action.payload.success && action.payload.data) {
           const updatedUser = action.payload.data.user;
           // Update user in the list
@@ -308,7 +359,14 @@ export const userSlice = createSlice({
       })
       .addCase(updateUserAsync.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload as string;
+        if (action.payload && typeof action.payload === 'object' && 'message' in action.payload) {
+          const payload = action.payload as { message: string; fieldErrors?: Record<string, string[]> };
+          state.error = payload.message;
+          state.fieldErrors = payload.fieldErrors || {};
+        } else {
+          state.error = action.payload as string;
+          state.fieldErrors = {};
+        }
       })
       
       // Delete user
@@ -338,6 +396,7 @@ export const userSlice = createSlice({
 
 export const { 
   clearError, 
+  clearFieldErrors,
   setCurrentUser, 
   setPagination, 
   setFilters, 

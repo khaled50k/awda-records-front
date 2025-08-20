@@ -9,7 +9,8 @@ import {
   updatePatientAsync,
   deletePatientAsync,
   setFilters,
-  clearFilters
+  clearFilters,
+  clearFieldErrors
 } from '../../store/slices/patientSlice';
 import { useRoleAccess } from '../../hooks/useRoleAccess';
 
@@ -81,7 +82,7 @@ interface FormDialogProps {
   title: string;
   formData: {
     full_name: string;
-    national_id: number;
+    national_id: string;
     gender_code: string;
     health_center_code: string;
   };
@@ -100,7 +101,18 @@ const PatientFormDialog: React.FC<FormDialogProps> = ({
   editingPatient
 }) => {
   const { staticData } = useSelector((state: RootState) => state.staticData);
+  const { fieldErrors } = useSelector((state: RootState) => state.patients);
   const [form, setForm] = useState(formData);
+
+  // Debug form data changes
+  React.useEffect(() => {
+    console.log('PatientFormDialog - formData changed:', formData);
+    setForm(formData);
+  }, [formData]);
+
+
+
+
 
   // Get genders and health centers for form dropdown
   const genders = staticData?.gender || [];
@@ -113,18 +125,24 @@ const PatientFormDialog: React.FC<FormDialogProps> = ({
   // Update form when editingPatient changes
   React.useEffect(() => {
     if (editingPatient) {
-      setForm({
+      const updatedForm = {
         full_name: editingPatient.full_name,
-        national_id: editingPatient.national_id,
+        national_id: editingPatient.national_id.toString(),
         gender_code: editingPatient.gender_code,
         health_center_code: editingPatient.health_center_code
-      });
+      };
+      setForm(updatedForm);
     }
   }, [editingPatient]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(form);
+    // Convert string national_id to number for submission
+    const submissionData = {
+      ...form,
+      national_id: parseInt(form.national_id) || 0
+    };
+    onSubmit(submissionData);
   };
 
   const handleCancel = () => {
@@ -132,7 +150,7 @@ const PatientFormDialog: React.FC<FormDialogProps> = ({
       // Reset form to original patient data
       setForm({
         full_name: editingPatient.full_name,
-        national_id: editingPatient.national_id,
+        national_id: editingPatient.national_id.toString(),
         gender_code: editingPatient.gender_code,
         health_center_code: editingPatient.health_center_code
       });
@@ -151,6 +169,8 @@ const PatientFormDialog: React.FC<FormDialogProps> = ({
             </DialogDescription>
           )}
         </DialogHeader>
+
+
 
         {editingPatient && (
           <div className="p-4 bg-muted rounded-lg mb-4">
@@ -171,7 +191,7 @@ const PatientFormDialog: React.FC<FormDialogProps> = ({
                 </span>
               </div>
               <div>
-                <span className="text-muted-foreground">المركز الصحي:</span>
+                <span className="text-muted-foreground">اسم المرفق:</span>
                 <span className="font-medium mr-2">
                   {editingPatient.health_center?.label_ar || editingPatient.health_center_code || 'غير محدد'}
                 </span>
@@ -193,7 +213,15 @@ const PatientFormDialog: React.FC<FormDialogProps> = ({
               onChange={(e) => setForm({ ...form, full_name: e.target.value })}
               placeholder="أدخل الاسم الكامل للمريض"
               required
+              className={fieldErrors.full_name ? 'border-red-500' : ''}
             />
+            {fieldErrors.full_name && (
+              <div className="text-sm text-red-600">
+                {fieldErrors.full_name.map((error, index) => (
+                  <p key={index}>{error}</p>
+                ))}
+              </div>
+            )}
           </div>
           <div className="space-y-2">
             <Label htmlFor="national_id">رقم الهوية</Label>
@@ -201,15 +229,23 @@ const PatientFormDialog: React.FC<FormDialogProps> = ({
               id="national_id"
               type="number"
               value={form.national_id}
-              onChange={(e) => setForm({ ...form, national_id: parseInt(e.target.value) || 0 })}
+              onChange={(e) => setForm({ ...form, national_id: e.target.value })}
               placeholder="أدخل رقم الهوية"
               required
+              className={fieldErrors.national_id ? 'border-red-500' : ''}
             />
+            {fieldErrors.national_id && (
+              <div className="text-sm text-red-600">
+                {fieldErrors.national_id.map((error, index) => (
+                  <p key={index}>{error}</p>
+                ))}
+              </div>
+            )}
           </div>
           <div className="space-y-2">
             <Label htmlFor="gender_code">الجنس</Label>
             <Select value={form.gender_code} onValueChange={(value) => setForm({ ...form, gender_code: value })}>
-              <SelectTrigger>
+              <SelectTrigger className={fieldErrors.gender_code ? 'border-red-500' : ''}>
                 <SelectValue placeholder="اختر الجنس" />
               </SelectTrigger>
               <SelectContent>
@@ -220,13 +256,20 @@ const PatientFormDialog: React.FC<FormDialogProps> = ({
                 ))}
               </SelectContent>
             </Select>
+            {fieldErrors.gender_code && (
+              <div className="text-sm text-red-600">
+                {fieldErrors.gender_code.map((error, index) => (
+                  <p key={index}>{error}</p>
+                ))}
+              </div>
+            )}
           </div>
           <div className="space-y-2">
-            <Label htmlFor="health_center_code">المركز الصحي</Label>
+            <Label htmlFor="health_center_code">اسم المرفق</Label>
             {healthCenters.length > 0 ? (
               <Select value={form.health_center_code} onValueChange={(value) => setForm({ ...form, health_center_code: value })}>
-                <SelectTrigger>
-                  <SelectValue placeholder="اختر المركز الصحي" />
+                <SelectTrigger className={fieldErrors.health_center_code ? 'border-red-500' : ''}>
+                  <SelectValue placeholder="اختر اسم المرفق" />
                 </SelectTrigger>
                 <SelectContent>
                   {healthCenters.map((center: StaticData) => (
@@ -241,6 +284,13 @@ const PatientFormDialog: React.FC<FormDialogProps> = ({
                 <p className="text-sm text-yellow-800">
                   لا توجد مراكز صحية متاحة. يرجى التأكد من تحميل البيانات الأساسية.
                 </p>
+              </div>
+            )}
+            {fieldErrors.health_center_code && (
+              <div className="text-sm text-red-600">
+                {fieldErrors.health_center_code.map((error, index) => (
+                  <p key={index}>{error}</p>
+                ))}
               </div>
             )}
           </div>
@@ -390,7 +440,7 @@ const PatientDetailsModal: React.FC<PatientDetailsModalProps> = ({
                 </div>
               </div>
               <div>
-                <Label className="text-sm font-medium text-muted-foreground">المركز الصحي</Label>
+                <Label className="text-sm font-medium text-muted-foreground">اسم المرفق</Label>
                 <div className="mt-1">
                   {patient.health_center ? (
                     <div className="space-y-1">
@@ -602,17 +652,24 @@ const PatientDetailsModal: React.FC<PatientDetailsModalProps> = ({
 export const PatientsPage: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  const { patients, loading, pagination, filters } = useSelector((state: RootState) => state.patients);
+  const { patients, loading, pagination, filters, fieldErrors } = useSelector((state: RootState) => state.patients);
   const { staticData } = useSelector((state: RootState) => state.staticData);
   const { isAdmin } = useRoleAccess();
+
+
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [editingPatient, setEditingPatient] = useState<Patient | null>(null);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    full_name: string;
+    national_id: string;
+    gender_code: string;
+    health_center_code: string;
+  }>({
     full_name: '',
-    national_id: 0,
+    national_id: '',
     gender_code: '',
     health_center_code: ''
   });
@@ -629,15 +686,17 @@ export const PatientsPage: React.FC = () => {
     try {
       await dispatch(createPatientAsync(data)).unwrap();
       setIsFormOpen(false);
-      setFormData({ full_name: '', national_id: 0, gender_code: '', health_center_code: '' });
+      setFormData({ full_name: '', national_id: '', gender_code: '', health_center_code: '' });
+      dispatch(clearFieldErrors()); // Clear all field errors
       toast({
         title: "تم إنشاء المريض بنجاح",
         description: "تم إضافة المريض الجديد إلى النظام",
       });
     } catch (error) {
+      // Field errors are now handled by the store and displayed in the form
       toast({
         title: "خطأ في إنشاء المريض",
-        description: "حدث خطأ أثناء إنشاء المريض",
+        description: "يرجى مراجعة الأخطاء في النموذج",
         variant: "destructive",
       });
     }
@@ -650,15 +709,17 @@ export const PatientsPage: React.FC = () => {
       await dispatch(updatePatientAsync({ id: editingPatient.patient_id, patientData: data })).unwrap();
       setIsFormOpen(false);
       setEditingPatient(null);
-      setFormData({ full_name: '', national_id: 0, gender_code: '', health_center_code: '' });
+      setFormData({ full_name: '', national_id: '', gender_code: '', health_center_code: '' });
+      dispatch(clearFieldErrors()); // Clear all field errors
       toast({
         title: "تم تحديث المريض بنجاح",
         description: "تم تحديث بيانات المريض",
       });
     } catch (error) {
+      // Field errors are now handled by the store and displayed in the form
       toast({
         title: "خطأ في تحديث المريض",
-        description: "حدث خطأ أثناء تحديث المريض",
+        description: "يرجى مراجعة الأخطاء في النموذج",
         variant: "destructive",
       });
     }
@@ -737,10 +798,11 @@ export const PatientsPage: React.FC = () => {
               setEditingPatient(record);
               setFormData({
                 full_name: record.full_name,
-                national_id: record.national_id,
+                national_id: record.national_id.toString(),
                 gender_code: record.gender_code,
                 health_center_code: record.health_center_code
               });
+              dispatch(clearFieldErrors()); // Clear any previous errors
               setIsFormOpen(true);
             }}
             className="text-green-600 hover:text-green-700 hover:bg-green-50"
@@ -763,7 +825,8 @@ export const PatientsPage: React.FC = () => {
         </div>
         <Button onClick={() => {
           setEditingPatient(null);
-          setFormData({ full_name: '', national_id: 0, gender_code: '', health_center_code: '' });
+          setFormData({ full_name: '', national_id: '', gender_code: '', health_center_code: '' });
+          dispatch(clearFieldErrors()); // Clear any previous errors
           setIsFormOpen(true);
         }}>
           <Plus className="w-4 h-4 ml-2" />
@@ -777,6 +840,8 @@ export const PatientsPage: React.FC = () => {
         male: patients.filter(p => p.gender_code === 'male').length,
         female: patients.filter(p => p.gender_code === 'female').length
       }} />
+
+
 
     
 
@@ -830,7 +895,7 @@ export const PatientsPage: React.FC = () => {
               },
               {
                 key: 'health_center_code',
-                label: 'المركز الصحي',
+                label: 'اسم المرفق',
                 type: 'select',
                 options: [
                   { value: 'all', label: 'الكل' },
@@ -851,7 +916,12 @@ export const PatientsPage: React.FC = () => {
       {/* Form Dialogs */}
       <PatientFormDialog
         isOpen={isFormOpen}
-        onOpenChange={setIsFormOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            dispatch(clearFieldErrors()); // Clear errors when modal is closed
+          }
+          setIsFormOpen(open);
+        }}
         title={editingPatient ? 'تعديل المريض' : 'إضافة مريض جديد'}
         formData={formData}
         onSubmit={editingPatient ? handleUpdatePatient : handleCreatePatient}

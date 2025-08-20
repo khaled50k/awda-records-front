@@ -152,7 +152,7 @@ export const ViewMedicalRecordPage: React.FC = () => {
                </div>
                
                <div className="space-y-2">
-                 <p className="text-sm font-medium text-gray-600">المركز الصحي</p>
+                 <p className="text-sm font-medium text-gray-600">اسم المرفق</p>
                  <p className="text-lg font-semibold text-gray-900">
                    {record.patient?.health_center?.label_ar || record.patient?.health_center_code || 'غير محدد'}
                  </p>
@@ -199,8 +199,7 @@ export const ViewMedicalRecordPage: React.FC = () => {
                {/* Reviewed Party */}
                <div className="space-y-2">
                  <p className="text-sm font-medium text-gray-600">المُدقق عليه</p>
-                 <p className="text-lg font-semibold text-gray-900">{record.reviewed_party_user?.full_name || 'غير محدد'}</p>
-                 <p className="text-sm text-gray-500">@{record.reviewed_party_user?.username || ''}</p>
+                 <p className="text-lg font-semibold text-gray-900">{record.reviewed_party || 'غير محدد'}</p>
                </div>
 
                {/* Last Modified By */}

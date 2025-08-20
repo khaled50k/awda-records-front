@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { useSelector } from 'react-redux';
-import { RootState, useAppDispatch, store } from '../store';
+import { RootState, useAppDispatch } from '../store';
 import {
   loginAsync,
   logoutAsync,
@@ -9,43 +9,26 @@ import {
   clearError,
   initializeAuth,
 } from '../store/slices/authSlice';
-import { getStaticDataAsync } from '../store/slices/staticDataSlice';
 import { AdminLoginRequest, AdminChangePasswordRequest } from '../types/api';
 
 export const useAuth = () => {
   const dispatch = useAppDispatch();
   const auth = useSelector((state: RootState) => state.auth);
 
-  // Fetch static data
-  const fetchStaticData = useCallback(async () => {
-    try {
-      // Check if static data is already loaded to avoid duplicate calls
-      const currentState = store.getState();
-      if (currentState.staticData.staticData && Object.keys(currentState.staticData.staticData).length > 0) {
-        console.log('Static data already loaded, skipping fetch');
-        return;
-      }
-      
-      console.log('Fetching static data...');
-      await dispatch(getStaticDataAsync()).unwrap();
-    } catch (error) {
-      console.warn('Failed to fetch static data:', error);
-    }
-  }, [dispatch]);
+
 
   // Login
   const login = useCallback(async (credentials: AdminLoginRequest) => {
     try {
       const result = await dispatch(loginAsync(credentials)).unwrap();
       
-      // After successful login, fetch static data
-      await fetchStaticData();
+      // Static data is now loaded at app level, no need to fetch here
       
       return { success: true, data: result };
     } catch (error) {
       return { success: false, error: error as string };
     }
-  }, [dispatch, fetchStaticData]);
+  }, [dispatch]);
 
   // Logout
   const logout = useCallback(async () => {
@@ -62,14 +45,13 @@ export const useAuth = () => {
     try {
       const result = await dispatch(getProfileAsync()).unwrap();
       
-      // After getting profile, fetch static data if not already loaded
-      await fetchStaticData();
+      // Static data is now loaded at app level, no need to fetch here
       
       return { success: true, data: result };
     } catch (error) {
       return { success: false, error: error as string };
     }
-  }, [dispatch, fetchStaticData]);
+  }, [dispatch]);
 
   // Change password
   const changePassword = useCallback(async (data: AdminChangePasswordRequest) => {
@@ -106,6 +88,5 @@ export const useAuth = () => {
     changePassword,
     clearAuthError,
     initializeAuthState,
-    fetchStaticData,
   };
 };

@@ -4,8 +4,6 @@ import { Home, Users, Heart, FileText, Send, User, Settings, Database } from 'lu
 export const ROLES = {
   ADMIN: 'admin',
   EMPLOYEE: 'employee',
-  DOCTOR: 'doctor',
-  NURSE: 'nurse'
 } as const;
 
 export type UserRole = typeof ROLES[keyof typeof ROLES];
@@ -53,19 +51,12 @@ const routes: Route[] = [
     protected: true,
     adminOnly: true
   },
-  {
-    path: ROUTES.ADMIN_STATIC_DATA,
-    label: 'البيانات الثابتة',
-    icon: Database,
-    roles: [ROLES.ADMIN],
-    protected: true,
-    adminOnly: true
-  },
+ 
   {
     path: ROUTES.ADMIN_PATIENTS,
     label: 'إدارة المرضى',
     icon: Heart,
-    roles: [ROLES.ADMIN, ROLES.EMPLOYEE, ROLES.DOCTOR, ROLES.NURSE],
+    roles: [ROLES.ADMIN, ROLES.EMPLOYEE,],
     protected: true,
     adminOnly: false
   },
@@ -73,7 +64,7 @@ const routes: Route[] = [
     path: ROUTES.ADMIN_MEDICAL_RECORDS,
     label: 'السجلات الطبية',
     icon: FileText,
-    roles: [ROLES.ADMIN, ROLES.EMPLOYEE, ROLES.DOCTOR, ROLES.NURSE],
+    roles: [ROLES.ADMIN, ROLES.EMPLOYEE, ],
     protected: true,
     adminOnly: false
   },
@@ -81,9 +72,17 @@ const routes: Route[] = [
     path: ROUTES.ADMIN_TRANSFERS,
     label: 'إدارة التحويلات',
     icon: Send,
-    roles: [ROLES.ADMIN, ROLES.EMPLOYEE, ROLES.DOCTOR, ROLES.NURSE],
+    roles: [ROLES.ADMIN, ROLES.EMPLOYEE,],
     protected: true,
     adminOnly: false
+  },
+  {
+    path: ROUTES.ADMIN_STATIC_DATA,
+    label: 'البيانات الثابتة',
+    icon: Database,
+    roles: [ROLES.ADMIN],
+    protected: true,
+    adminOnly: true
   },
 ];
 

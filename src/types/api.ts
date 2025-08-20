@@ -108,7 +108,7 @@ export interface MedicalRecord {
   status?: StaticData;
   problem_type?: StaticData;
   danger_level?: StaticData;
-  reviewed_party_user?: User;
+  reviewed_party?: string;
   creator?: User;
   last_modifier?: User;
   transfers?: RecordTransfer[];
@@ -116,12 +116,12 @@ export interface MedicalRecord {
 
 export interface CreateMedicalRecordRequest {
   patient_id: number;
-  recipient_id: number;
   problem_type_code: string;
-  danger_level_code?: string;
-  reviewed_party_user_id?: number;
-  status_code?: string;
-  transfer_notes?: string;
+  danger_level_code: string;
+  reviewed_party: string;
+  status_code: string;
+  recipient_id?: number;
+  transfer_notes: string;
 }
 
 export interface UpdateMedicalRecordRequest {

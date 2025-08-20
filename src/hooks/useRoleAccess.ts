@@ -76,9 +76,8 @@ export const useRoleAccess = () => {
   
   // Simple role checks
   const isAdmin = userRole === ROLES.ADMIN;
-  const isEmployee = userRole ? [ROLES.EMPLOYEE, ROLES.DOCTOR, ROLES.NURSE].includes(userRole as any) : false;
-  const isDoctor = userRole === ROLES.DOCTOR;
-  const isNurse = userRole === ROLES.NURSE;
+  const isEmployee = userRole ? [ROLES.EMPLOYEE].includes(userRole as any) : false;
+
   
   // Check if user can access admin-only routes
   const canAccessAdminRoutes = isAdmin;
@@ -92,8 +91,6 @@ export const useRoleAccess = () => {
     defaultRoute,
     isAdmin,
     isEmployee,
-    isDoctor,
-    isNurse,
     canAccessAdminRoutes,
     isAuthenticated: !!user
   };

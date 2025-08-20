@@ -17,6 +17,7 @@ export interface PatientState {
   currentPatient: Patient | null;
   loading: boolean;
   error: string | null;
+  fieldErrors: Record<string, string[]>;
   pagination: {
     currentPage: number;
     perPage: number;
@@ -39,6 +40,7 @@ const initialState: PatientState = {
   currentPatient: null,
   loading: false,
   error: null,
+  fieldErrors: {},
   pagination: {
     currentPage: 1,
     perPage: 15,
@@ -128,8 +130,26 @@ export const createPatientAsync = createAsyncThunk(
     try {
       const response = await patientService.createPatient(patientData);
       return response;
-    } catch (error: any) {
-      return rejectWithValue(error.message || 'Failed to create patient');
+    } catch (error: unknown) {
+      if (error && typeof error === 'object' && 'data' in error) {
+        const apiError = error as Error & { data?: unknown };
+        // Extract field errors from the nested structure
+        let fieldErrors: Record<string, string[]> = {};
+        if (apiError.data && typeof apiError.data === 'object') {
+          const errorData = apiError.data as any;
+          if (errorData.data && typeof errorData.data === 'object') {
+            fieldErrors = errorData.data;
+          }
+        }
+        return rejectWithValue({
+          message: apiError.message || 'Failed to create patient',
+          fieldErrors: fieldErrors
+        });
+      }
+      return rejectWithValue({
+        message: 'Failed to create patient',
+        fieldErrors: {}
+      });
     }
   }
 );
@@ -141,8 +161,26 @@ export const updatePatientAsync = createAsyncThunk(
     try {
       const response = await patientService.updatePatient(id, patientData);
       return response;
-    } catch (error: any) {
-      return rejectWithValue(error.message || 'Failed to update patient');
+    } catch (error: unknown) {
+      if (error && typeof error === 'object' && 'data' in error) {
+        const apiError = error as Error & { data?: unknown };
+        // Extract field errors from the nested structure
+        let fieldErrors: Record<string, string[]> = {};
+        if (apiError.data && typeof apiError.data === 'object') {
+          const errorData = apiError.data as any;
+          if (errorData.data && typeof errorData.data === 'object') {
+            fieldErrors = errorData.data;
+          }
+        }
+        return rejectWithValue({
+          message: apiError.message || 'Failed to update patient',
+          fieldErrors: fieldErrors
+        });
+      }
+      return rejectWithValue({
+        message: 'Failed to update patient',
+        fieldErrors: {}
+      });
     }
   }
 );
@@ -171,6 +209,12 @@ export const patientSlice = createSlice({
     // Clear error
     clearError: (state) => {
       state.error = null;
+      state.fieldErrors = {};
+    },
+    
+    // Clear field errors
+    clearFieldErrors: (state) => {
+      state.fieldErrors = {};
     },
     
     // Set current patient
@@ -189,12 +233,15 @@ export const patientSlice = createSlice({
     },
     
     // Update filters
-    setFilters: (state, action: PayloadAction<{ search?: string; genderCode?: string }>) => {
+    setFilters: (state, action: PayloadAction<{ search?: string; genderCode?: string; healthCenterCode?: string }>) => {
       if (action.payload.search !== undefined) {
         state.filters.search = action.payload.search;
       }
       if (action.payload.genderCode !== undefined) {
         state.filters.genderCode = action.payload.genderCode;
+      }
+      if (action.payload.healthCenterCode !== undefined) {
+        state.filters.healthCenterCode = action.payload.healthCenterCode;
       }
       // Reset to first page when filters change
       state.pagination.currentPage = 1;
@@ -205,6 +252,7 @@ export const patientSlice = createSlice({
       state.filters = {
         search: '',
         genderCode: '',
+        healthCenterCode: '',
       };
       state.pagination.currentPage = 1;
     },
@@ -215,6 +263,7 @@ export const patientSlice = createSlice({
       state.currentPatient = null;
       state.loading = false;
       state.error = null;
+      state.fieldErrors = {};
       state.pagination = {
         currentPage: 1,
         perPage: 15,
@@ -224,6 +273,7 @@ export const patientSlice = createSlice({
       state.filters = {
         search: '',
         genderCode: '',
+        healthCenterCode: '',
       };
     },
   },
@@ -315,9 +365,12 @@ export const patientSlice = createSlice({
       .addCase(createPatientAsync.pending, (state) => {
         state.loading = true;
         state.error = null;
+        state.fieldErrors = {};
       })
       .addCase(createPatientAsync.fulfilled, (state, action: PayloadAction<ApiResponse<{ patient: Patient }>>) => {
         state.loading = false;
+        state.error = null;
+        state.fieldErrors = {};
         if (action.payload.success && action.payload.data) {
           // Add new patient to the list
           state.patients.unshift(action.payload.data.patient);
@@ -326,16 +379,21 @@ export const patientSlice = createSlice({
       })
       .addCase(createPatientAsync.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload as string;
+        const payload = action.payload as { message: string; fieldErrors: Record<string, string[]> } | undefined;
+        state.error = payload?.message || 'Failed to create patient';
+        state.fieldErrors = payload?.fieldErrors || {};
       })
       
       // Update patient
       .addCase(updatePatientAsync.pending, (state) => {
         state.loading = true;
         state.error = null;
+        state.fieldErrors = {};
       })
       .addCase(updatePatientAsync.fulfilled, (state, action: PayloadAction<ApiResponse<{ patient: Patient }>>) => {
         state.loading = false;
+        state.error = null;
+        state.fieldErrors = {};
         if (action.payload.success && action.payload.data) {
           const updatedPatient = action.payload.data.patient;
           // Update patient in the list
@@ -351,7 +409,9 @@ export const patientSlice = createSlice({
       })
       .addCase(updatePatientAsync.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload as string;
+        const payload = action.payload as { message: string; fieldErrors: Record<string, string[]> } | undefined;
+        state.error = payload?.message || 'Failed to update patient';
+        state.fieldErrors = payload?.fieldErrors || {};
       })
       
       // Delete patient
@@ -381,6 +441,7 @@ export const patientSlice = createSlice({
 
 export const { 
   clearError, 
+  clearFieldErrors,
   setCurrentPatient, 
   setPagination, 
   setFilters, 

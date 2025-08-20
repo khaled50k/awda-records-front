@@ -11,9 +11,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Search, Filter, X, Download, FileText } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Search, Filter, X, Download, FileText, Calendar } from 'lucide-react';
 import { LoadingSpinner } from './loading-spinner';
 import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
+import { ar } from 'date-fns/locale';
 
 interface Column<T> {
   key: keyof T | string;
@@ -261,6 +265,50 @@ export function EnhancedDataTable<T>({
     }
   };
 
+  // Render date range section
+  const renderDateRangeSection = () => {
+    const dateFilters = filterOptions.filter(option => option.type === 'date');
+    if (dateFilters.length === 0) return null;
+
+    return (
+      <div className="border-b border-gray-200 dark:border-gray-700 pb-4 mb-4">
+        <div className="flex items-center gap-4">
+          {dateFilters.slice(0, 2).map((option) => (
+            <div key={option.key} className="flex items-center gap-2">
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
+                {option.label}
+              </label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className={cn(
+                      "w-40 justify-start text-left font-normal",
+                      !filters[option.key] && "text-muted-foreground"
+                    )}
+                  >
+                    <Calendar className="mr-2 h-4 w-4" />
+                    {filters[option.key] ? format(new Date(filters[option.key] as string), 'dd/MM/yyyy', { locale: ar }) : option.placeholder}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <CalendarComponent
+                    mode="single"
+                    selected={filters[option.key] ? new Date(filters[option.key] as string) : undefined}
+                    onSelect={(date) => handleFilterChange(option.key, date ? format(date, 'yyyy-MM-dd') : '')}
+                    initialFocus
+                    locale={ar}
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
   // Render search bar
   const renderSearchBar = () => (
     showSearch && (
@@ -278,6 +326,7 @@ export function EnhancedDataTable<T>({
               />
             </div>
           </div>
+          
           <div className="flex items-center gap-2 flex-wrap">
             {exportEnabled && (
               <>
@@ -486,6 +535,9 @@ export function EnhancedDataTable<T>({
       </CardHeader>
 
       <CardContent className="space-y-4">
+        {/* Date Range Section - Prominent and Always Visible */}
+        {renderDateRangeSection()}
+        
         {renderSearchBar()}
         {renderFilterPanel()}
         {renderTableContent()}

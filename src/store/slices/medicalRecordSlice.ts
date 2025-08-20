@@ -17,6 +17,7 @@ export interface MedicalRecordState {
   currentRecord: MedicalRecord | null;
   loading: boolean;
   error: string | null;
+  fieldErrors: Record<string, string[]>;
   pagination: {
     currentPage: number;
     perPage: number;
@@ -59,6 +60,7 @@ const initialState: MedicalRecordState = {
   currentRecord: null,
   loading: false,
   error: null,
+  fieldErrors: {},
   pagination: {
     currentPage: 1,
     perPage: 15,
@@ -163,19 +165,7 @@ export const getMedicalRecordsByStatusAsync = createAsyncThunk(
   }
 );
 
-// Get medical records by health center
-export const getMedicalRecordsByHealthCenterAsync = createAsyncThunk(
-  'medicalRecords/getMedicalRecordsByHealthCenter',
-  async (healthCenterCode: string, { rejectWithValue }) => {
-    try {
-      const response = await medicalRecordService.getMedicalRecordsByHealthCenter(healthCenterCode);
-      return response;
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch medical records by health center';
-      return rejectWithValue(errorMessage);
-    }
-  }
-);
+
 
 // Get medical records by creator
 export const getMedicalRecordsByCreatorAsync = createAsyncThunk(
@@ -213,8 +203,17 @@ export const createMedicalRecordAsync = createAsyncThunk(
       const response = await medicalRecordService.createMedicalRecord(recordData);
       return response;
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to create medical record';
-      return rejectWithValue(errorMessage);
+      if (error && typeof error === 'object' && 'data' in error) {
+        const apiError = error as { message: string; data: { data: Record<string, string[]> } };
+        return rejectWithValue({
+          message: apiError.message || 'Failed to create medical record',
+          fieldErrors: apiError.data?.data || {}
+        });
+      }
+      return rejectWithValue({
+        message: 'Failed to create medical record',
+        fieldErrors: {}
+      });
     }
   }
 );
@@ -227,11 +226,20 @@ export const updateMedicalRecordAsync = createAsyncThunk(
       const response = await medicalRecordService.updateMedicalRecord(id, recordData);
       return response;
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to update medical record';
-      return rejectWithValue(errorMessage);
+      if (error && typeof error === 'object' && 'data' in error) {
+        const apiError = error as { message: string; data: { data: Record<string, string[]> } };
+        return rejectWithValue({
+          message: apiError.message || 'Failed to update medical record',
+          fieldErrors: apiError.data?.data || {}
+        });
+      }
+      return rejectWithValue({
+        message: 'Failed to update medical record',
+        fieldErrors: {}
+      });
     }
   }
-);
+  );
 
 // Delete medical record
 export const deleteMedicalRecordAsync = createAsyncThunk(
@@ -258,6 +266,11 @@ export const medicalRecordSlice = createSlice({
     // Clear error
     clearError: (state) => {
       state.error = null;
+    },
+    
+    // Clear field errors
+    clearFieldErrors: (state) => {
+      state.fieldErrors = {};
     },
     
     // Set current record
@@ -318,6 +331,7 @@ export const medicalRecordSlice = createSlice({
       state.currentRecord = null;
       state.loading = false;
       state.error = null;
+      state.fieldErrors = {};
       state.pagination = {
         currentPage: 1,
         perPage: 15,
@@ -419,27 +433,7 @@ export const medicalRecordSlice = createSlice({
         state.error = action.payload as string;
       })
       
-      // Get medical records by health center
-      .addCase(getMedicalRecordsByHealthCenterAsync.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(getMedicalRecordsByHealthCenterAsync.fulfilled, (state, action: PayloadAction<ApiResponse<PaginatedResponse<MedicalRecord>>>) => {
-        state.loading = false;
-        if (action.payload.success && action.payload.data) {
-          state.medicalRecords = action.payload.data.data;
-          state.pagination = {
-            currentPage: action.payload.data.current_page,
-            perPage: action.payload.data.per_page,
-            total: action.payload.data.total,
-            lastPage: action.payload.data.last_page,
-          };
-        }
-      })
-      .addCase(getMedicalRecordsByHealthCenterAsync.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload as string;
-      })
+
       
       // Get medical records by creator
       .addCase(getMedicalRecordsByCreatorAsync.pending, (state) => {
@@ -483,9 +477,11 @@ export const medicalRecordSlice = createSlice({
       .addCase(createMedicalRecordAsync.pending, (state) => {
         state.loading = true;
         state.error = null;
+        state.fieldErrors = {};
       })
       .addCase(createMedicalRecordAsync.fulfilled, (state, action: PayloadAction<ApiResponse<{ record: MedicalRecord }>>) => {
         state.loading = false;
+        state.fieldErrors = {};
         if (action.payload.success && action.payload.data) {
           // Add new record to the list
           state.medicalRecords.unshift(action.payload.data.record);
@@ -494,22 +490,32 @@ export const medicalRecordSlice = createSlice({
       })
       .addCase(createMedicalRecordAsync.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload as string;
+        if (action.payload && typeof action.payload === 'object' && 'message' in action.payload) {
+          const payload = action.payload as { message: string; fieldErrors?: Record<string, string[]> };
+          state.error = payload.message;
+          state.fieldErrors = payload.fieldErrors || {};
+        } else {
+          state.error = action.payload as string;
+          state.fieldErrors = {};
+        }
       })
       
       // Update medical record
       .addCase(updateMedicalRecordAsync.pending, (state) => {
         state.loading = true;
         state.error = null;
+        state.fieldErrors = {};
       })
       .addCase(updateMedicalRecordAsync.fulfilled, (state, action: PayloadAction<ApiResponse<{ record: MedicalRecord }>>) => {
         state.loading = false;
+        state.fieldErrors = {};
         if (action.payload.success && action.payload.data) {
           const updatedRecord = action.payload.data.record;
           // Update record in the list
           const index = state.medicalRecords.findIndex(record => record.record_id === updatedRecord.record_id);
           if (index !== -1) {
             state.medicalRecords[index] = updatedRecord;
+            state.pagination.total += 1;
           }
           // Update current record if it's the same
           if (state.currentRecord?.record_id === updatedRecord.record_id) {
@@ -519,7 +525,14 @@ export const medicalRecordSlice = createSlice({
       })
       .addCase(updateMedicalRecordAsync.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload as string;
+        if (action.payload && typeof action.payload === 'object' && 'message' in action.payload) {
+          const payload = action.payload as { message: string; fieldErrors?: Record<string, string[]> };
+          state.error = payload.message;
+          state.fieldErrors = payload.fieldErrors || {};
+        } else {
+          state.error = action.payload as string;
+          state.fieldErrors = {};
+        }
       })
       
       // Delete medical record
@@ -549,6 +562,7 @@ export const medicalRecordSlice = createSlice({
 
 export const { 
   clearError, 
+  clearFieldErrors,
   setCurrentRecord, 
   setPagination, 
   setFilters, 

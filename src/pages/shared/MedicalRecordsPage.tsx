@@ -29,6 +29,7 @@ import { useDebounce } from 'use-debounce';
 import { format } from 'date-fns';
 import { ar } from 'date-fns/locale';
 import { cn } from '../../lib/utils';
+import { useRoleAccess } from '../../hooks/useRoleAccess';
 
 
 // Utility functions
@@ -372,6 +373,8 @@ interface FormDialogProps {
     health_center_code: string;
     status_code: string;
     problem_type_code: string;
+    danger_level_code: string;
+    reviewed_party: string;
     transfer_notes: string;
   };
   onSubmit: (data: {
@@ -380,6 +383,8 @@ interface FormDialogProps {
     health_center_code: string;
     status_code: string;
     problem_type_code: string;
+    danger_level_code: string;
+    reviewed_party: string;
     transfer_notes: string;
   }) => void;
   isLoading: boolean;
@@ -419,12 +424,37 @@ const RecordFormDialog: React.FC<FormDialogProps> = ({
       return;
     }
     
-
+    if (!form.health_center_code) {
+      toast({
+        title: "خطأ في البيانات",
+        description: "يرجى اختيار اسم المرفق",
+        variant: "destructive",
+      });
+      return;
+    }
     
     if (!form.problem_type_code) {
       toast({
         title: "خطأ في البيانات",
         description: "يرجى اختيار نوع المشكلة",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (!form.danger_level_code) {
+      toast({
+        title: "خطأ في البيانات",
+        description: "يرجى اختيار مستوى الخطر",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (!form.reviewed_party) {
+      toast({
+        title: "خطأ في البيانات",
+        description: "يرجى إدخال اسم المدقق عليه",
         variant: "destructive",
       });
       return;
@@ -490,6 +520,48 @@ const RecordFormDialog: React.FC<FormDialogProps> = ({
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="health_center_code">اسم المرفق</Label>
+            <Select value={form.health_center_code} onValueChange={(value) => setForm({ ...form, health_center_code: value })}>
+              <SelectTrigger>
+                <SelectValue placeholder="اختر اسم المرفق" />
+              </SelectTrigger>
+              <SelectContent>
+                {staticData?.health_center?.map((center) => (
+                  <SelectItem key={center.code} value={center.code}>
+                    {center.label_ar}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="danger_level_code">مستوى الخطر</Label>
+            <Select value={form.danger_level_code} onValueChange={(value) => setForm({ ...form, danger_level_code: value })}>
+              <SelectTrigger>
+                <SelectValue placeholder="اختر مستوى الخطر" />
+              </SelectTrigger>
+              <SelectContent>
+                {staticData?.danger_level?.map((level) => (
+                  <SelectItem key={level.code} value={level.code}>
+                    {level.label_ar}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="reviewed_party">المدقق عليه</Label>
+            <Input
+              id="reviewed_party"
+              value={form.reviewed_party}
+              onChange={(e) => setForm({ ...form, reviewed_party: e.target.value })}
+              placeholder="أدخل اسم المدقق عليه"
+            />
           </div>
 
           <div className="space-y-2">
@@ -621,7 +693,7 @@ const ViewRecordModal: React.FC<ViewRecordModalProps> = ({ isOpen, onOpenChange,
                 <div className="text-blue-900 font-semibold">{record.problem_type?.label_ar || 'غير محدد'}</div>
               </div>
               <div>
-                <div className="text-blue-600 text-sm font-medium">المركز الصحي</div>
+                <div className="text-blue-600 text-sm font-medium">اسم المرفق</div>
                 <div className="text-blue-900 font-semibold">{record.patient?.health_center?.label_ar || 'غير محدد'}</div>
               </div>
               <div>
@@ -662,7 +734,7 @@ const ViewRecordModal: React.FC<ViewRecordModalProps> = ({ isOpen, onOpenChange,
                 </div>
               </div>
               <div>
-                <Label className="text-sm font-medium text-gray-600">المركز الصحي</Label>
+                <Label className="text-sm font-medium text-gray-600">اسم المرفق</Label>
                 <div className="mt-1 p-2 bg-green-50 rounded border border-green-200">
                   <Badge variant="outline" className="border-green-300 text-green-800">
                     {record.patient?.health_center?.label_ar || record.patient?.health_center_code || 'غير محدد'}
@@ -824,6 +896,76 @@ const ViewRecordModal: React.FC<ViewRecordModalProps> = ({ isOpen, onOpenChange,
   );
 };
 
+// Edit Status Modal Component
+interface EditStatusModalProps {
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
+  record: MedicalRecord | null;
+  onSubmit: (recordId: number, newStatus: string) => void;
+  isLoading: boolean;
+  statusOptions: StaticData[];
+}
+
+const EditStatusModal: React.FC<EditStatusModalProps> = ({
+  isOpen,
+  onOpenChange,
+  record,
+  onSubmit,
+  isLoading,
+  statusOptions
+}) => {
+  const [status, setStatus] = useState(record?.status_code || 'initiated');
+
+  // Update status when record changes
+  useEffect(() => {
+    if (record) {
+      setStatus(record.status_code);
+    }
+  }, [record]);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!record) return;
+
+    onSubmit(record.record_id, status);
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[400px]">
+        <DialogHeader>
+          <DialogTitle>تغيير حالة السجل</DialogTitle>
+          <DialogDescription>
+            تغيير حالة السجل الطبي: {record?.patient?.full_name}
+          </DialogDescription>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="status">الحالة</Label>
+            <Select value={status} onValueChange={(value) => setStatus(value)}>
+              <SelectTrigger>
+                <SelectValue placeholder="اختر الحالة" />
+              </SelectTrigger>
+              <SelectContent>
+                {statusOptions.map((statusOption) => (
+                  <SelectItem key={statusOption.code} value={statusOption.code}>
+                    {statusOption.label_ar}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <DialogFooter>
+            <Button type="submit" disabled={isLoading}>
+              {isLoading ? 'جاري التحديث...' : 'تحديث'}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
 // Main component
 interface MedicalRecordsPageProps {
   userRole: 'admin' | 'employee';
@@ -836,16 +978,22 @@ export const MedicalRecordsPage: React.FC<MedicalRecordsPageProps> = ({ userRole
   const { patients } = useSelector((state: RootState) => state.patients);
   const { staticData } = useSelector((state: RootState) => state.staticData);
   const { users } = useSelector((state: RootState) => state.users);
+  const { isAdmin } = useRoleAccess();
 
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState<MedicalRecord | null>(null);
   const [viewingRecord, setViewingRecord] = useState<MedicalRecord | null>(null);
+  const [isEditStatusOpen, setIsEditStatusOpen] = useState(false);
+  const [editingStatusRecord, setEditingStatusRecord] = useState<MedicalRecord | null>(null);
   const [formData, setFormData] = useState({
     patient_id: 0,
     recipient_id: null as number | null,
+    health_center_code: '',
     status_code: 'initiated',
     problem_type_code: '',
+    danger_level_code: '',
+    reviewed_party: '',
     transfer_notes: ''
   });
 
@@ -860,8 +1008,11 @@ export const MedicalRecordsPage: React.FC<MedicalRecordsPageProps> = ({ userRole
       // Transform data to match API requirements
       const apiData = {
         patient_id: data.patient_id,
-        recipient_id: data.recipient_id,
+        recipient_id: data.recipient_id || 0,
+        health_center_code: data.health_center_code,
         problem_type_code: data.problem_type_code,
+        danger_level_code: data.danger_level_code,
+        reviewed_party: data.reviewed_party,
         status_code: data.status_code,
         transfer_notes: data.transfer_notes
       };
@@ -871,8 +1022,11 @@ export const MedicalRecordsPage: React.FC<MedicalRecordsPageProps> = ({ userRole
       setFormData({ 
         patient_id: 0, 
         recipient_id: null, 
+        health_center_code: '',
         status_code: 'initiated', 
         problem_type_code: '', 
+        danger_level_code: '',
+        reviewed_party: '',
         transfer_notes: '' 
       });
       toast({
@@ -894,8 +1048,10 @@ export const MedicalRecordsPage: React.FC<MedicalRecordsPageProps> = ({ userRole
     try {
       // Transform data to match API requirements
       const apiData = {
-        recipient_id: data.recipient_id,
+        recipient_id: data.recipient_id || 0,
         problem_type_code: data.problem_type_code,
+        danger_level_code: data.danger_level_code,
+        reviewed_party_user_id: data.reviewed_party ? parseInt(data.reviewed_party) : undefined,
         status_code: data.status_code,
         transfer_notes: data.transfer_notes
       };
@@ -906,8 +1062,11 @@ export const MedicalRecordsPage: React.FC<MedicalRecordsPageProps> = ({ userRole
       setFormData({ 
         patient_id: 0, 
         recipient_id: null, 
+        health_center_code: '',
         status_code: 'initiated', 
         problem_type_code: '', 
+        danger_level_code: '',
+        reviewed_party: '',
         transfer_notes: '' 
       });
       toast({
@@ -918,6 +1077,29 @@ export const MedicalRecordsPage: React.FC<MedicalRecordsPageProps> = ({ userRole
       toast({
         title: "خطأ في تحديث السجل الطبي",
         description: "حدث خطأ أثناء تحديث السجل الطبي",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleUpdateStatus = async (recordId: number, newStatus: string) => {
+    try {
+      await dispatch(updateMedicalRecordAsync({ 
+        id: recordId, 
+        recordData: { status_code: newStatus } 
+      })).unwrap();
+      
+      setIsEditStatusOpen(false);
+      setEditingStatusRecord(null);
+      
+      toast({
+        title: "تم تحديث الحالة بنجاح",
+        description: "تم تحديث حالة السجل الطبي",
+      });
+    } catch (error) {
+      toast({
+        title: "خطأ في تحديث الحالة",
+        description: "حدث خطأ أثناء تحديث حالة السجل الطبي",
         variant: "destructive",
       });
     }
@@ -948,7 +1130,7 @@ export const MedicalRecordsPage: React.FC<MedicalRecordsPageProps> = ({ userRole
           <div className="flex items-center space-x-2 space-x-reverse">
             <User className="w-4 h-4 text-muted-foreground" />
             <span className="font-medium">
-              {latestTransfer?.recipient?.full_name || 'لم يتم التحويل بعد'}
+              {latestTransfer?.recipient?.full_name || '-'}
             </span>
           </div>
         );
@@ -998,7 +1180,7 @@ export const MedicalRecordsPage: React.FC<MedicalRecordsPageProps> = ({ userRole
         <div className="flex items-center space-x-2 space-x-reverse">
           <User className="w-4 h-4 text-muted-foreground" />
           <span className="font-medium">
-            {record.reviewed_party_user?.full_name || 'غير محدد'}
+            {record.reviewed_party || 'غير محدد'}
           </span>
         </div>
       ),
@@ -1025,8 +1207,21 @@ export const MedicalRecordsPage: React.FC<MedicalRecordsPageProps> = ({ userRole
           >
             <Eye className="w-4 h-4" />
           </Button>
-         )}          
-   
+         )}
+              {isAdmin && (
+         <Button
+           variant="ghost"
+           size="sm"
+           onClick={() => {
+             setEditingStatusRecord(record);
+             setIsEditStatusOpen(true);
+           }}
+           className="text-green-600 hover:text-green-700 hover:bg-green-50"
+           title="تعديل الحالة"
+         >
+           <Edit className="w-4 h-4" />
+         </Button>
+              )}
         </div>
       ),
     },
@@ -1094,16 +1289,16 @@ export const MedicalRecordsPage: React.FC<MedicalRecordsPageProps> = ({ userRole
       })) || []
     },
 
-    // Date range filters
+    // Date range filters - Most important ones first
     {
       key: 'created_from',
-      label: 'تاريخ الإنشاء من',
+      label: 'من تاريخ',
       type: 'date' as const,
       placeholder: 'من تاريخ'
     },
     {
       key: 'created_to',
-      label: 'تاريخ الإنشاء إلى',
+      label: 'إلى تاريخ',
       type: 'date' as const,
       placeholder: 'إلى تاريخ'
     },
@@ -1271,6 +1466,16 @@ export const MedicalRecordsPage: React.FC<MedicalRecordsPageProps> = ({ userRole
         isOpen={!!viewingRecord}
         onOpenChange={(open) => !open && setViewingRecord(null)}
         record={viewingRecord}
+      />
+
+      {/* Edit Status Modal */}
+      <EditStatusModal
+        isOpen={isEditStatusOpen}
+        onOpenChange={setIsEditStatusOpen}
+        record={editingStatusRecord}
+        onSubmit={handleUpdateStatus}
+        isLoading={loading}
+        statusOptions={staticData?.status || []}
       />
     </div>
   );

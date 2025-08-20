@@ -17,11 +17,13 @@ import { toast } from '../../hooks/use-toast';
 import { useDebounce } from 'use-debounce';
 import { LoadingSpinner } from '../../components/ui/loading-spinner';
 import { MedicalRecord } from '../../types/api';
+import { formatDateTime } from '@/utils/dateUtils';
+import { useRoleAccess } from '@/hooks/useRoleAccess';
 
 interface TransferFormData {
   recipient_id: number | null;
   transfer_notes: string;
-  status_code: string;
+  transfer_status_code: string;
 }
 
 interface SearchableRecipientInputProps {
@@ -160,7 +162,7 @@ export const TransferRecordPage: React.FC = () => {
   const navigate = useNavigate();
   const { recordId } = useParams<{ recordId: string }>();
   const dispatch = useAppDispatch();
-  
+  const   {isAdmin} =useRoleAccess()
   const { staticData } = useSelector((state: RootState) => state.staticData);
   const { loading } = useSelector((state: RootState) => state.transfers);
   
@@ -170,10 +172,10 @@ export const TransferRecordPage: React.FC = () => {
   const [formData, setFormData] = useState<TransferFormData>({
     recipient_id: null,
     transfer_notes: '',
-    status_code: 'initiated'
+    transfer_status_code: ''
   });
 
-  const statusOptions = staticData?.status || [];
+  const statusOptions = staticData?.transfer_status || [];
 
   // Fetch medical record data if recordId is provided
   useEffect(() => {
@@ -184,12 +186,42 @@ export const TransferRecordPage: React.FC = () => {
         .then((response) => {
           const record = response.data;
           setMedicalRecord(record);
-          // Pre-fill form with current record status
-          if (record.status_code) {
-            setFormData(prev => ({
-              ...prev,
-              status_code: record.status_code
-            }));
+          
+          // Check if there are existing transfers and pre-fill form data
+          if (record.transfers && record.transfers.length > 0) {
+            const latestTransfer = record.transfers[0]; // Get the most recent transfer
+            
+            // Pre-fill form with existing transfer data if available
+            if (latestTransfer.transfer_status_code) {
+              setFormData(prev => ({
+                ...prev,
+                transfer_status_code: latestTransfer.transfer_status_code
+              }));
+            }
+            
+            // Pre-fill transfer notes if they exist
+            if (latestTransfer.transfer_notes) {
+              setFormData(prev => ({
+                ...prev,
+                transfer_notes: latestTransfer.transfer_notes
+              }));
+            }
+            
+            // Pre-fill recipient if transfer exists and user is admin
+            if (isAdmin && latestTransfer.recipient_id) {
+              setFormData(prev => ({
+                ...prev,
+                recipient_id: latestTransfer.recipient_id
+              }));
+            }
+          } else {
+            // If no existing transfers, pre-fill with current record status
+            if (record.transfer_status_code) {
+              setFormData(prev => ({
+                ...prev,
+                transfer_status_code: record.transfer_status_code
+              }));
+            }
           }
         })
         .catch((error) => {
@@ -204,12 +236,13 @@ export const TransferRecordPage: React.FC = () => {
           setIsLoadingRecord(false);
         });
     }
-  }, [recordId, dispatch]);
+  }, [recordId, dispatch, isAdmin]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.recipient_id) {
+    // Validation: Check if recipient is selected (for admin users only)
+    if (isAdmin && !formData.recipient_id) {
       toast({
         title: "خطأ في النموذج",
         description: "يرجى اختيار المستلم",
@@ -218,6 +251,17 @@ export const TransferRecordPage: React.FC = () => {
       return;
     }
 
+    // Validation: Check if transfer status is selected
+    if (!formData.transfer_status_code) {
+      toast({
+        title: "خطأ في النموذج",
+        description: "يرجى اختيار حالة السجل",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validation: Check if transfer notes are provided
     if (!formData.transfer_notes.trim()) {
       toast({
         title: "خطأ في النموذج",
@@ -239,9 +283,9 @@ export const TransferRecordPage: React.FC = () => {
 
       await dispatch(createTransferAsync({
         record_id: parseInt(recordId),
-        recipient_id: formData.recipient_id,
+        recipient_id: formData.recipient_id , // Provide default value if null
         transfer_notes: formData.transfer_notes,
-        status_code: formData.status_code
+        transfer_status_code: formData.transfer_status_code
       })).unwrap();
 
       toast({
@@ -321,9 +365,33 @@ export const TransferRecordPage: React.FC = () => {
                   </p>
                 </div>
                 <div className="space-y-2">
-                  <p className="text-sm font-medium text-gray-600">المركز الصحي</p>
+                  <p className="text-sm font-medium text-gray-600">رقم الهوية</p>
+                  <p className="text-lg font-semibold text-gray-900">
+                    {medicalRecord.patient?.national_id || 'غير محدد'}
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-gray-600">تاريخ الملاحظة</p>
+                  <p className="text-lg font-semibold text-gray-900">
+                    { formatDateTime(medicalRecord.created_at) || 'غير محدد'}
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-gray-600"> اسم المرفق</p>
                   <p className="text-lg font-semibold text-gray-900">
                     {medicalRecord.patient?.health_center?.label_ar || medicalRecord.patient?.health_center_code || 'غير محدد'}
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-gray-600">المدقق عليه</p>
+                  <p className="text-lg font-semibold text-gray-900">
+                    {medicalRecord.reviewed_party || 'غير محدد'}
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-gray-600">اسم الشخص المرسل</p>
+                  <p className="text-lg font-semibold text-gray-900">
+                    {medicalRecord.creator?.full_name || medicalRecord.creator?.username || 'غير محدد'}
                   </p>
                 </div>
                 <div className="space-y-2">
@@ -332,6 +400,8 @@ export const TransferRecordPage: React.FC = () => {
                     {medicalRecord.problem_type?.label_ar || medicalRecord.problem_type_code || 'غير محدد'}
                   </p>
                 </div>
+           
+
               </div>
             ) : (
               <div className="text-center py-8">
@@ -351,11 +421,14 @@ export const TransferRecordPage: React.FC = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="p-6">
+       
+
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Recipient Selection */}
+            {isAdmin && (
               <div className="space-y-2">
                 <Label htmlFor="recipient_id" className="text-base font-semibold">
-                  المستلم <span className="text-red-500">*</span>
+                  المستلم ذو العلاقة<span className="text-red-500">*</span>
                 </Label>
                 <SearchableRecipientInput
                   value={formData.recipient_id}
@@ -366,15 +439,15 @@ export const TransferRecordPage: React.FC = () => {
                   اختر المستلم الذي تريد إرسال السجل إليه
                 </p>
               </div>
-
+            )}
               {/* Status Selection */}
               <div className="space-y-2">
-                <Label htmlFor="status_code" className="text-base font-semibold">
+                <Label htmlFor="transfer_status_code" className="text-base font-semibold">
                   حالة السجل <span className="text-red-500">*</span>
                 </Label>
                 <Select 
-                  value={formData.status_code} 
-                  onValueChange={(value) => setFormData({ ...formData, status_code: value })}
+                  value={formData.transfer_status_code} 
+                  onValueChange={(value) => setFormData({ ...formData, transfer_status_code: value })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="اختر الحالة" />
@@ -389,6 +462,7 @@ export const TransferRecordPage: React.FC = () => {
                 </Select>
                 <p className="text-sm text-gray-500">
                   اختر الحالة الجديدة للسجل بعد التحويل
+                
                 </p>
               </div>
 
@@ -407,11 +481,14 @@ export const TransferRecordPage: React.FC = () => {
                 />
                 <p className="text-sm text-gray-500">
                   اكتب ملاحظات مفصلة حول سبب التحويل والمتطلبات المطلوبة
+                
                 </p>
               </div>
 
               {/* Form Actions */}
               <div className="flex items-center justify-end space-x-3 space-x-reverse pt-6 border-t">
+           
+                
                 <Button
                   type="button"
                   variant="outline"
@@ -423,8 +500,8 @@ export const TransferRecordPage: React.FC = () => {
                 </Button>
                 <Button
                   type="submit"
-                  disabled={loading}
-                  className="px-8 py-2 min-w-[140px] bg-gaza-green hover:bg-green-600 text-white border-0 shadow-sm hover:shadow-md transition-all duration-200"
+                  disabled={loading || !formData.transfer_status_code || !formData.transfer_notes.trim() || (isAdmin && !formData.recipient_id)}
+                  className="px-8 py-2 min-w-[140px] bg-gaza-green hover:bg-green-600 text-white border-0 shadow-sm hover:shadow-md transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {loading ? 'جاري الإرسال...' : (
                     <>

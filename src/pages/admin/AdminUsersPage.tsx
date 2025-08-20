@@ -5,8 +5,7 @@ import {
   getUsersAsync, 
   createUserAsync,
   updateUserAsync,
-  
-
+  clearFieldErrors
 } from '../../store/slices/userSlice';
 import { Card, CardContent } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
@@ -49,9 +48,8 @@ const getStatusBadge = (user: UserType) => {
   }
 };
 
-const getRoleBadge = (roleCode: string, staticData: any) => {
-  const role = staticData?.role?.find((r: any) => r.code === roleCode);
-  console.log(roleCode, staticData);
+const getRoleBadge = (roleCode: string, staticData: { role?: Array<{ code: string; label_ar: string }> }) => {
+  const role = staticData?.role?.find((r: { code: string; label_ar: string }) => r.code === roleCode);
   
   if (!role) {
     return (
@@ -116,7 +114,14 @@ interface FormDialogProps {
     role_code: string;
     is_active: boolean;
   };
-  onSubmit: (data: any) => void;
+  onSubmit: (data: {
+    username: string;
+    email: string;
+    password: string;
+    full_name: string;
+    role_code: string;
+    is_active: boolean;
+  }) => void;
   isLoading: boolean;
   editingUser: UserType | null;
 }
@@ -126,7 +131,7 @@ interface UserDetailsModalProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   user: UserType | null;
-  staticData: any;
+  staticData: { role?: Array<{ code: string; label_ar: string }> };
 }
 
 const UserDetailsModal: React.FC<UserDetailsModalProps> = ({
@@ -271,6 +276,7 @@ const UserFormDialog: React.FC<FormDialogProps> = ({
 }) => {
   const [form, setForm] = useState(formData);
   const { staticData } = useSelector((state: RootState) => state.staticData);
+  const { fieldErrors } = useSelector((state: RootState) => state.users);
 
   // Update form when formData changes (for editing)
   React.useEffect(() => {
@@ -296,7 +302,15 @@ const UserFormDialog: React.FC<FormDialogProps> = ({
               value={form.username}
               onChange={(e) => setForm({ ...form, username: e.target.value })}
               required
+              className={fieldErrors.username ? 'border-red-500' : ''}
             />
+            {fieldErrors.username && (
+              <div className="text-sm text-red-600">
+                {fieldErrors.username.map((error, index) => (
+                  <p key={index}>{error}</p>
+                ))}
+              </div>
+            )}
           </div>
           <div className="space-y-2">
             <Label htmlFor="email">البريد الإلكتروني</Label>
@@ -305,8 +319,15 @@ const UserFormDialog: React.FC<FormDialogProps> = ({
               type="email"
               value={form.email}
               onChange={(e) => setForm({ ...form, email: e.target.value })}
-      
+              className={fieldErrors.email ? 'border-red-500' : ''}
             />
+            {fieldErrors.email && (
+              <div className="text-sm text-red-600">
+                {fieldErrors.email.map((error, index) => (
+                  <p key={index}>{error}</p>
+                ))}
+              </div>
+            )}
           </div>
           <div className="space-y-2">
             <Label htmlFor="password">
@@ -318,7 +339,15 @@ const UserFormDialog: React.FC<FormDialogProps> = ({
               value={form.password}
               onChange={(e) => setForm({ ...form, password: e.target.value })}
               required={!editingUser}
+              className={fieldErrors.password ? 'border-red-500' : ''}
             />
+            {fieldErrors.password && (
+              <div className="text-sm text-red-600">
+                {fieldErrors.password.map((error, index) => (
+                  <p key={index}>{error}</p>
+                ))}
+              </div>
+            )}
           </div>
           <div className="space-y-2">
             <Label htmlFor="full_name">الاسم الكامل</Label>
@@ -327,12 +356,20 @@ const UserFormDialog: React.FC<FormDialogProps> = ({
               value={form.full_name}
               onChange={(e) => setForm({ ...form, full_name: e.target.value })}
               required
+              className={fieldErrors.full_name ? 'border-red-500' : ''}
             />
+            {fieldErrors.full_name && (
+              <div className="text-sm text-red-600">
+                {fieldErrors.full_name.map((error, index) => (
+                  <p key={index}>{error}</p>
+                ))}
+              </div>
+            )}
           </div>
           <div className="space-y-2">
             <Label htmlFor="role_code">الدور</Label>
             <Select value={form.role_code} onValueChange={(value) => setForm({ ...form, role_code: value })}>
-              <SelectTrigger>
+              <SelectTrigger className={fieldErrors.role_code ? 'border-red-500' : ''}>
                 <SelectValue placeholder="اختر الدور" />
               </SelectTrigger>
               <SelectContent>
@@ -343,6 +380,13 @@ const UserFormDialog: React.FC<FormDialogProps> = ({
                  )) || []}
               </SelectContent>
             </Select>
+            {fieldErrors.role_code && (
+              <div className="text-sm text-red-600">
+                {fieldErrors.role_code.map((error, index) => (
+                  <p key={index}>{error}</p>
+                ))}
+              </div>
+            )}
           </div>
           <div className="flex items-center space-x-2 space-x-reverse">
             <input
@@ -369,7 +413,7 @@ const UserFormDialog: React.FC<FormDialogProps> = ({
 export const AdminUsersPage: React.FC = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
-  const { users, loading, pagination, filters } = useSelector((state: RootState) => state.users);
+  const { users, loading, pagination, filters, fieldErrors } = useSelector((state: RootState) => state.users);
   const { staticData } = useSelector((state: RootState) => state.staticData);
   
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -389,25 +433,41 @@ export const AdminUsersPage: React.FC = () => {
     dispatch(getUsersAsync({ page: 1, perPage: 15 }));
   }, [dispatch]);
 
-  const handleCreateUser = async (data: any) => {
+  const handleCreateUser = async (data: {
+    username: string;
+    email: string;
+    password: string;
+    full_name: string;
+    role_code: string;
+    is_active: boolean;
+  }) => {
     try {
       await dispatch(createUserAsync(data)).unwrap();
       setIsFormOpen(false);
       setFormData({ username: '', email: '', password: '', full_name: '', role_code: '', is_active: true });
+      dispatch(clearFieldErrors()); // Clear all field errors
       toast({
         title: "تم إنشاء المستخدم بنجاح",
         description: "تم إضافة المستخدم الجديد إلى النظام",
       });
     } catch (error) {
+      // Field errors are now handled by the store and displayed in the form
       toast({
         title: "خطأ في إنشاء المستخدم",
-        description: "حدث خطأ أثناء إنشاء المستخدم",
+        description: "يرجى مراجعة الأخطاء في النموذج",
         variant: "destructive",
       });
     }
   };
 
-  const handleUpdateUser = async (data: any) => {
+  const handleUpdateUser = async (data: {
+    username: string;
+    email: string;
+    password: string;
+    full_name: string;
+    role_code: string;
+    is_active: boolean;
+  }) => {
     if (!editingUser) return;
     
     try {
@@ -415,14 +475,16 @@ export const AdminUsersPage: React.FC = () => {
       setIsFormOpen(false);
       setEditingUser(null);
       setFormData({ username: '', email: '', password: '', full_name: '', role_code: '', is_active: true });
+      dispatch(clearFieldErrors()); // Clear all field errors
       toast({
         title: "تم تحديث المستخدم بنجاح",
         description: "تم تحديث بيانات المستخدم",
       });
     } catch (error) {
+      // Field errors are now handled by the store and displayed in the form
       toast({
         title: "خطأ في تحديث المستخدم",
-        description: "حدث خطأ أثناء تحديث المستخدم",
+        description: "يرجى مراجعة الأخطاء في النموذج",
         variant: "destructive",
       });
     }
@@ -431,6 +493,7 @@ export const AdminUsersPage: React.FC = () => {
   const handleOpenCreateForm = () => {
     setEditingUser(null);
     setFormData({ username: '', email: '', password: '', full_name: '', role_code: '', is_active: true });
+    dispatch(clearFieldErrors()); // Clear any previous errors
     setIsFormOpen(true);
   };
 
@@ -444,6 +507,7 @@ export const AdminUsersPage: React.FC = () => {
       role_code: user.role_code,
       is_active: user.is_active
     });
+    dispatch(clearFieldErrors()); // Clear any previous errors
     setIsFormOpen(true);
   };
 
@@ -572,7 +636,12 @@ export const AdminUsersPage: React.FC = () => {
       {/* Form Dialogs */}
       <UserFormDialog
         isOpen={isFormOpen}
-        onOpenChange={setIsFormOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            dispatch(clearFieldErrors()); // Clear errors when modal is closed
+          }
+          setIsFormOpen(open);
+        }}
         title={editingUser ? 'تعديل المستخدم' : 'إضافة مستخدم جديد'}
         formData={formData}
         onSubmit={editingUser ? handleUpdateUser : handleCreateUser}
