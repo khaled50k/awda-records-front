@@ -1421,35 +1421,40 @@ export const MedicalRecordsPage: React.FC<MedicalRecordsPageProps> = ({ userRole
       const today = new Date();
       const todayString = format(today, 'yyyy-MM-dd');
       
+      console.log('Starting export for date:', todayString);
+      
       // Call the API to get the daily transfers report
       const result = await dispatch(getDailyTransfersReportAsync({
         from_date: todayString,
         to_date: todayString
       })).unwrap();
       
+      console.log('API response:', result);
+      
       if (result.success && result.data) {
-        // Convert API data to CSV
+        // Convert JSON API response to CSV format
         const exportRows: Record<string, string>[] = [];
         
-        result.data.patients.forEach(patient => {
+        result.data.patients.forEach((patient, index) => {
           const row: Record<string, string> = {
-            'اسم المريض': patient.patient_name,
-            'المدقق عليه': patient.doctor_or_reviewed_party,
-            'عيادات خارجية': patient['عيادات خارجية'],
-            ' مختبر': patient[' مختبر'],
-            'تمريض': patient['تمريض'],
-            ' صيدلية': patient[' صيدلية'],
-            'خدمات الجمهور': patient['خدمات الجمهور'],
-            ' أشعة': patient[' أشعة'],
-            'تقارير': patient['تقارير'],
-            'أقسام وعمليات': patient['أقسام وعمليات'],
-            'مخازن': patient['مخازن']
+            'اسم المريض': patient.patient_name || '',
+            'المدقق عليه': patient.doctor_or_reviewed_party || '',
+            'عيادات خارجية': patient['عيادات خارجية'] || '',
+            ' مختبر': patient[' مختبر'] || '',
+            'تمريض': patient['تمريض'] || '',
+            ' صيدلية': patient[' صيدلية'] || '',
+            'خدمات الجمهور': patient['خدمات الجمهور'] || '',
+            ' أشعة': patient[' أشعة'] || '',
+            'تقارير': patient['تقارير'] || '',
+            'أقسام وعمليات': patient['أقسام وعمليات'] || '',
+            'مخازن': patient['مخازن'] || ''
           };
           
           exportRows.push(row);
+          console.log(`Row ${index + 1}:`, row);
         });
 
-        // Convert to CSV
+        // Define CSV headers in Arabic
         const headers = [
           'اسم المريض',
           'المدقق عليه',
@@ -1464,13 +1469,14 @@ export const MedicalRecordsPage: React.FC<MedicalRecordsPageProps> = ({ userRole
           'مخازن'
         ];
         
+        // Convert to CSV content with proper encoding
         const csvContent = [
           headers.join(','),
           ...exportRows.map(row => 
             headers.map(header => {
               const value = row[header] || '';
               // Escape commas and quotes in CSV
-              if (typeof value === 'string' && (value.includes(',') || value.includes('"'))) {
+              if (typeof value === 'string' && (value.includes(',') || value.includes('"') || value.includes('\n'))) {
                 return `"${value.replace(/"/g, '""')}"`;
               }
               return value;
@@ -1478,23 +1484,44 @@ export const MedicalRecordsPage: React.FC<MedicalRecordsPageProps> = ({ userRole
           )
         ].join('\n');
 
-        // Download CSV file
-        const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement('a');
-        const url = URL.createObjectURL(blob);
-        link.setAttribute('href', url);
-        link.setAttribute('download', `تقرير_النقل_اليومي_${todayString}.csv`);
-        link.style.visibility = 'hidden';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        
+        console.log('CSV Content:', csvContent);
+        console.log('Total rows:', exportRows.length);
+
+        // Create CSV file and download
+        try {
+          // Method 1: Try data URL first (avoids blob security warnings)
+          const dataUrl = 'data:text/csv;charset=utf-8,' + encodeURIComponent('\ufeff' + csvContent);
+          const link = document.createElement('a');
+          link.href = dataUrl;
+          link.download = `تقرير_النقل_اليومي_${todayString}.csv`;
+          link.style.display = 'none';
+          
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          
+          toast({
+            title: "تم التصدير بنجاح",
+            description: `تم تصدير تقرير النقل اليومي لـ ${result.data.summary.total_patients} مريض`,
+          });
+        } catch (downloadError) {
+          console.error('Download error:', downloadError);
+          toast({
+            title: "خطأ في التحميل",
+            description: "حدث خطأ أثناء تحميل الملف. يرجى المحاولة مرة أخرى.",
+            variant: "destructive",
+          });
+        }
+      } else {
+        console.error('API response not successful:', result);
         toast({
-          title: "تم التصدير بنجاح",
-          description: `تم تصدير تقرير النقل اليومي لـ ${result.data.summary.total_patients} مريض`,
+          title: "خطأ في البيانات",
+          description: "لم يتم العثور على بيانات التقرير",
+          variant: "destructive",
         });
       }
     } catch (error) {
+      console.error('Export error:', error);
       toast({
         title: "خطأ في التصدير",
         description: "حدث خطأ أثناء تصدير تقرير النقل اليومي",
