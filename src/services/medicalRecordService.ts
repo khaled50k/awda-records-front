@@ -105,13 +105,14 @@ export class MedicalRecordService {
   }
 
   // Get daily transfers report
-  async getDailyTransfersReport(params: DailyTransfersReportRequest = {}): Promise<DailyTransfersReportResponse> {
+  async getDailyTransfersReport(params: DailyTransfersReportRequest = {}): Promise<ApiResponse<string>> {
     const searchParams = new URLSearchParams();
     
     if (params.from_date) searchParams.append('from_date', params.from_date);
     if (params.to_date) searchParams.append('to_date', params.to_date);
     
-    return apiService.get<DailyTransfersReportData>(`/records/daily-transfers-report?${searchParams.toString()}`);
+    // API returns CSV directly, so we expect a string response
+    return apiService.get<string>(`/records/daily-transfers-report?${searchParams.toString()}`);
   }
 
   // Get medical records by patient

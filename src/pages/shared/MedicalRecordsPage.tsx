@@ -1462,39 +1462,26 @@ export const MedicalRecordsPage: React.FC<MedicalRecordsPageProps> = ({ userRole
 
       console.log('📊 API Response received:', result);
 
-      console.log('🔍 Checking API response data:', {
-        success: result.success,
-        hasData: !!result.data,
-        hasPatients: !!(result.data && result.data.patients),
-        patientsCount: result.data?.patients?.length || 0,
-        dateRange: result.data?.date_range,
-        summary: result.data?.summary
-      });
-
-      if (result.success && result.data) {
-        // Backend returns CSV file directly
-        const csvContent = result.data;
-        
-        if (!csvContent || typeof csvContent !== 'string') {
-          throw new Error('No CSV content received from API');
-        }
+      // API now returns CSV string directly
+      if (typeof result === 'string' && result.trim() !== '') {
+        console.log('✅ CSV response received, length:', result.length);
         
         // Create and download the CSV file
-        downloadCSV(csvContent, fromDate, toDate);
+        downloadCSV(result, fromDate, toDate);
         
         toast({
           title: "تم التصدير بنجاح",
           description: "تم تصدير التقرير بنجاح",
         });
-              } else {
-          console.warn('⚠️ No CSV data returned from API:', result);
-          
-          toast({
-            title: "لا توجد بيانات",
-            description: "لم يتم العثور على بيانات CSV للتصدير في التاريخ المحدد",
-            variant: "destructive",
-          });
-        }
+      } else {
+        console.warn('⚠️ No CSV data received:', result);
+        
+        toast({
+          title: "لا توجد بيانات",
+          description: "لم يتم العثور على بيانات CSV للتصدير في التاريخ المحدد",
+          variant: "destructive",
+        });
+      }
 
     } catch (error) {
       console.error('❌ Export error:', error);

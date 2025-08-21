@@ -17,7 +17,7 @@ import {
 export interface MedicalRecordState {
   medicalRecords: MedicalRecord[];
   currentRecord: MedicalRecord | null;
-  dailyTransfersReport: DailyTransfersReportResponse | null;
+  dailyTransfersReport: string | null; // Changed to string for CSV content
   loading: boolean;
   error: string | null;
   fieldErrors: Record<string, string[]>;
@@ -205,7 +205,8 @@ export const getDailyTransfersReportAsync = createAsyncThunk(
   async (params: DailyTransfersReportRequest = {}, { rejectWithValue }) => {
     try {
       const response = await medicalRecordService.getDailyTransfersReport(params);
-      return response;
+      // Extract the CSV string from the API response
+      return response.data;
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to fetch daily transfers report';
       return rejectWithValue(errorMessage);
@@ -558,12 +559,11 @@ export const medicalRecordSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      .addCase(getDailyTransfersReportAsync.fulfilled, (state, action: PayloadAction<DailyTransfersReportResponse>) => {
+      .addCase(getDailyTransfersReportAsync.fulfilled, (state, action: PayloadAction<string>) => {
         state.loading = false;
         state.error = null;
-        if (action.payload.success) {
-          state.dailyTransfersReport = action.payload;
-        }
+        // Store the CSV content directly
+        state.dailyTransfersReport = action.payload;
       })
       .addCase(getDailyTransfersReportAsync.rejected, (state, action) => {
         state.loading = false;
