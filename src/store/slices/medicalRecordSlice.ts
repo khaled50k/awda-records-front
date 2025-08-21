@@ -5,7 +5,9 @@ import {
   CreateMedicalRecordRequest, 
   UpdateMedicalRecordRequest, 
   PaginatedResponse,
-  ApiResponse 
+  ApiResponse,
+  DailyTransfersReportResponse,
+  DailyTransfersReportRequest
 } from '../../types/api';
 
 // ============================================================================
@@ -15,6 +17,7 @@ import {
 export interface MedicalRecordState {
   medicalRecords: MedicalRecord[];
   currentRecord: MedicalRecord | null;
+  dailyTransfersReport: DailyTransfersReportResponse | null;
   loading: boolean;
   error: string | null;
   fieldErrors: Record<string, string[]>;
@@ -58,6 +61,7 @@ export interface MedicalRecordState {
 const initialState: MedicalRecordState = {
   medicalRecords: [],
   currentRecord: null,
+  dailyTransfersReport: null,
   loading: false,
   error: null,
   fieldErrors: {},
@@ -190,6 +194,20 @@ export const getMedicalRecordAsync = createAsyncThunk(
       return response;
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to fetch medical record';
+      return rejectWithValue(errorMessage);
+    }
+  }
+);
+
+// Get daily transfers report
+export const getDailyTransfersReportAsync = createAsyncThunk(
+  'medicalRecords/getDailyTransfersReport',
+  async (params: DailyTransfersReportRequest = {}, { rejectWithValue }) => {
+    try {
+      const response = await medicalRecordService.getDailyTransfersReport(params);
+      return response;
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch daily transfers report';
       return rejectWithValue(errorMessage);
     }
   }
@@ -535,12 +553,29 @@ export const medicalRecordSlice = createSlice({
         }
       })
       
+      // Get daily transfers report
+      .addCase(getDailyTransfersReportAsync.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(getDailyTransfersReportAsync.fulfilled, (state, action: PayloadAction<DailyTransfersReportResponse>) => {
+        state.loading = false;
+        state.error = null;
+        if (action.payload.success) {
+          state.dailyTransfersReport = action.payload;
+        }
+      })
+      .addCase(getDailyTransfersReportAsync.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
+      
       // Delete medical record
       .addCase(deleteMedicalRecordAsync.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(deleteMedicalRecordAsync.fulfilled, (state, action: PayloadAction<ApiResponse<Record<string, never>>>) => {
+      .addCase(deleteMedicalRecordAsync.fulfilled, (state, action: PayloadAction<ApiResponse<{ message: string }>>) => {
         state.loading = false;
         if (action.payload.success) {
           // Remove record from the list

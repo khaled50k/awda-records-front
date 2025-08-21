@@ -4,7 +4,9 @@ import {
   MedicalRecord, 
   CreateMedicalRecordRequest, 
   UpdateMedicalRecordRequest, 
-  PaginatedResponse 
+  PaginatedResponse,
+  DailyTransfersReportResponse,
+  DailyTransfersReportRequest
 } from '../types/api';
 
 // Medical Records Management Service
@@ -98,8 +100,18 @@ export class MedicalRecordService {
   }
 
   // Delete medical record
-  async deleteMedicalRecord(id: number): Promise<ApiResponse<Record<string, never>>> {
-    return apiService.delete<Record<string, never>>(`/records/${id}`);
+  async deleteMedicalRecord(id: number): Promise<ApiResponse<{ message: string }>> {
+    return apiService.delete<{ message: string }>(`/records/${id}`);
+  }
+
+  // Get daily transfers report
+  async getDailyTransfersReport(params: DailyTransfersReportRequest = {}): Promise<DailyTransfersReportResponse> {
+    const searchParams = new URLSearchParams();
+    
+    if (params.from_date) searchParams.append('from_date', params.from_date);
+    if (params.to_date) searchParams.append('to_date', params.to_date);
+    
+    return apiService.get<DailyTransfersReportData>(`/records/daily-transfers-report?${searchParams.toString()}`);
   }
 
   // Get medical records by patient

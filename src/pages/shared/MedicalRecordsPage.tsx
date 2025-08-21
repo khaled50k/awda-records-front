@@ -6,6 +6,7 @@ import {
   createMedicalRecordAsync,
   updateMedicalRecordAsync,
   deleteMedicalRecordAsync,
+  getDailyTransfersReportAsync,
   setFilters, 
   clearFilters 
 } from '../../store/slices/medicalRecordSlice';
@@ -974,7 +975,7 @@ interface MedicalRecordsPageProps {
 export const MedicalRecordsPage: React.FC<MedicalRecordsPageProps> = ({ userRole }) => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
-  const { medicalRecords, loading, pagination, filters } = useSelector((state: RootState) => state.medicalRecords);
+  const { medicalRecords, loading, pagination, filters, dailyTransfersReport } = useSelector((state: RootState) => state.medicalRecords);
   const { patients } = useSelector((state: RootState) => state.patients);
   const { staticData } = useSelector((state: RootState) => state.staticData);
   const { users } = useSelector((state: RootState) => state.users);
@@ -1405,6 +1406,111 @@ export const MedicalRecordsPage: React.FC<MedicalRecordsPageProps> = ({ userRole
     dispatch(getMedicalRecordsAsync({ page: 1, perPage: pagination.perPage }));
   };
 
+  // Grouped Excel Export Function
+  const handleGroupedExport = (format: 'csv' | 'pdf') => {
+    if (format === 'csv') {
+      exportDailyTransfersReport();
+    } else if (format === 'pdf') {
+      exportGroupedToPDF();
+    }
+  };
+
+  const exportDailyTransfersReport = async () => {
+    try {
+      // Get current date for the report
+      const today = new Date();
+      const todayString = format(today, 'yyyy-MM-dd');
+      
+      // Call the API to get the daily transfers report
+      const result = await dispatch(getDailyTransfersReportAsync({
+        from_date: todayString,
+        to_date: todayString
+      })).unwrap();
+      
+      if (result.success && result.data) {
+        // Convert API data to CSV
+        const exportRows: Record<string, string>[] = [];
+        
+        result.data.patients.forEach(patient => {
+          const row: Record<string, string> = {
+            'اسم المريض': patient.patient_name,
+            'المدقق عليه': patient.doctor_or_reviewed_party,
+            'عيادات خارجية': patient['عيادات خارجية'],
+            ' مختبر': patient[' مختبر'],
+            'تمريض': patient['تمريض'],
+            ' صيدلية': patient[' صيدلية'],
+            'خدمات الجمهور': patient['خدمات الجمهور'],
+            ' أشعة': patient[' أشعة'],
+            'تقارير': patient['تقارير'],
+            'أقسام وعمليات': patient['أقسام وعمليات'],
+            'مخازن': patient['مخازن']
+          };
+          
+          exportRows.push(row);
+        });
+
+        // Convert to CSV
+        const headers = [
+          'اسم المريض',
+          'المدقق عليه',
+          'عيادات خارجية',
+          ' مختبر',
+          'تمريض',
+          ' صيدلية',
+          'خدمات الجمهور',
+          ' أشعة',
+          'تقارير',
+          'أقسام وعمليات',
+          'مخازن'
+        ];
+        
+        const csvContent = [
+          headers.join(','),
+          ...exportRows.map(row => 
+            headers.map(header => {
+              const value = row[header] || '';
+              // Escape commas and quotes in CSV
+              if (typeof value === 'string' && (value.includes(',') || value.includes('"'))) {
+                return `"${value.replace(/"/g, '""')}"`;
+              }
+              return value;
+            }).join(',')
+          )
+        ].join('\n');
+
+        // Download CSV file
+        const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', `تقرير_النقل_اليومي_${todayString}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        toast({
+          title: "تم التصدير بنجاح",
+          description: `تم تصدير تقرير النقل اليومي لـ ${result.data.summary.total_patients} مريض`,
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "خطأ في التصدير",
+        description: "حدث خطأ أثناء تصدير تقرير النقل اليومي",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const exportGroupedToPDF = () => {
+    // For now, just show a message that PDF export is not implemented
+    toast({
+      title: "تصدير PDF",
+      description: "سيتم إضافة تصدير PDF قريباً",
+    });
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -1422,6 +1528,34 @@ export const MedicalRecordsPage: React.FC<MedicalRecordsPageProps> = ({ userRole
 
       {/* Stats Cards */}
       <StatsCards medicalRecords={medicalRecords} />
+
+      {/* Daily Transfers Report Summary */}
+      {dailyTransfersReport && (
+        <Card className="bg-blue-50 border-blue-200">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-blue-900">تقرير النقل اليومي</h3>
+              <Badge className="bg-blue-100 text-blue-800">
+                {dailyTransfersReport.data.date_range.from_date} - {dailyTransfersReport.data.date_range.to_date}
+              </Badge>
+            </div>
+            <div className="grid grid-cols-3 gap-4 text-center">
+              <div>
+                <div className="text-2xl font-bold text-blue-600">{dailyTransfersReport.data.summary.total_patients}</div>
+                <div className="text-sm text-blue-700">إجمالي المرضى</div>
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-blue-600">{dailyTransfersReport.data.summary.total_records}</div>
+                <div className="text-sm text-blue-700">إجمالي السجلات</div>
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-blue-600">{dailyTransfersReport.data.summary.total_transfers}</div>
+                <div className="text-sm text-blue-700">إجمالي التحويلات</div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Data Table */}
       <Card>
@@ -1446,6 +1580,8 @@ export const MedicalRecordsPage: React.FC<MedicalRecordsPageProps> = ({ userRole
             searchableColumns={['patient.full_name', 'status.label_ar', 'transfers.recipient.full_name', 'danger_level.label_ar', 'reviewed_party_user.full_name']}
             title="السجلات الطبية"
             renderCustomFilter={renderCustomFilter}
+            exportEnabled={true}
+            onExport={handleGroupedExport}
           />
         </CardContent>
       </Card>

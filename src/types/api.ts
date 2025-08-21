@@ -153,6 +153,50 @@ export interface RecordTransfer {
   workflow_steps?: TransferWorkflowStep[];
 }
 
+// Daily Transfers Report Types
+export interface DailyTransfersReportPatient {
+  patient_id: number;
+  patient_name: string;
+  doctor_or_reviewed_party: string;
+  'عيادات خارجية': string;
+  ' مختبر': string;
+  'تمريض': string;
+  ' صيدلية': string;
+  'خدمات الجمهور': string;
+  ' أشعة': string;
+  'تقارير': string;
+  'أقسام وعمليات': string;
+  'مخازن': string;
+}
+
+export interface DailyTransfersReportSummary {
+  total_patients: number;
+  total_records: number;
+  total_transfers: number;
+}
+
+export interface DailyTransfersReportDateRange {
+  from_date: string;
+  to_date: string;
+}
+
+export interface DailyTransfersReportData {
+  date_range: DailyTransfersReportDateRange;
+  summary: DailyTransfersReportSummary;
+  patients: DailyTransfersReportPatient[];
+}
+
+export interface DailyTransfersReportResponse {
+  success: boolean;
+  data: DailyTransfersReportData;
+  message: string;
+}
+
+export interface DailyTransfersReportRequest {
+  from_date?: string;
+  to_date?: string;
+}
+
 export interface CreateTransferRequest {
   record_id: number;
   recipient_id: number;
