@@ -1471,31 +1471,30 @@ export const MedicalRecordsPage: React.FC<MedicalRecordsPageProps> = ({ userRole
         summary: result.data?.summary
       });
 
-      if (result.success && result.data && result.data.patients && result.data.patients.length > 0) {
-        // Convert the data to CSV format
-        const csvContent = convertToCSV(result.data);
+      if (result.success && result.data) {
+        // Backend returns CSV file directly
+        const csvContent = result.data;
+        
+        if (!csvContent || typeof csvContent !== 'string') {
+          throw new Error('No CSV content received from API');
+        }
         
         // Create and download the CSV file
         downloadCSV(csvContent, fromDate, toDate);
         
         toast({
           title: "تم التصدير بنجاح",
-          description: `تم تصدير ${result.data.patients.length} سجل بنجاح`,
+          description: "تم تصدير التقرير بنجاح",
         });
-      } else {
-        console.warn('⚠️ No data returned from API:', result);
-        console.log('📊 Data structure:', {
-          data: result.data,
-          patients: result.data?.patients,
-          length: result.data?.patients?.length
-        });
-        
-        toast({
-          title: "لا توجد بيانات",
-          description: "لم يتم العثور على بيانات للتصدير في التاريخ المحدد",
-          variant: "destructive",
-        });
-      }
+              } else {
+          console.warn('⚠️ No CSV data returned from API:', result);
+          
+          toast({
+            title: "لا توجد بيانات",
+            description: "لم يتم العثور على بيانات CSV للتصدير في التاريخ المحدد",
+            variant: "destructive",
+          });
+        }
 
     } catch (error) {
       console.error('❌ Export error:', error);
@@ -1507,59 +1506,7 @@ export const MedicalRecordsPage: React.FC<MedicalRecordsPageProps> = ({ userRole
     }
   };
 
-  // Convert API data to CSV format
-  const convertToCSV = (data: { patients: Array<{
-    patient_id?: number;
-    patient_name?: string;
-    doctor_or_reviewed_party?: string;
-    'عيادات خارجية'?: string;
-    ' مختبر'?: string;
-    'تمريض'?: string;
-    ' صيدلية'?: string;
-    'خدمات الجمهور'?: string;
-    ' أشعة'?: string;
-    'تقارير'?: string;
-    'أقسام وعمليات'?: string;
-    'مخازن'?: string;
-  }> }) => {
-    const headers = [
-      'رقم المريض',
-      'اسم المريض',
-      'اسم الطبيب (المدقق عليه)',
-      'عيادات خارجية',
-      'مختبر',
-      'تمريض',
-      'صيدلية',
-      'خدمات الجمهور',
-      'أشعة',
-      'تقارير',
-      'أقسام وعمليات',
-      'مخازن'
-    ];
 
-    const csvRows = [headers.join(',')];
-
-    // Process each patient
-    data.patients.forEach((patient) => {
-      const row = [
-        `"${patient.patient_id || ''}"`,
-        `"${patient.patient_name || ''}"`,
-        `"${patient.doctor_or_reviewed_party || ''}"`,
-        `"${patient['عيادات خارجية'] || ''}"`,
-        `"${patient[' مختبر'] || ''}"`,
-        `"${patient['تمريض'] || ''}"`,
-        `"${patient[' صيدلية'] || ''}"`,
-        `"${patient['خدمات الجمهور'] || ''}"`,
-        `"${patient[' أشعة'] || ''}"`,
-        `"${patient['تقارير'] || ''}"`,
-        `"${patient['أقسام وعمليات'] || ''}"`,
-        `"${patient['مخازن'] || ''}"`
-      ];
-      csvRows.push(row.join(','));
-    });
-
-    return csvRows.join('\n');
-  };
 
   // Download CSV file
   const downloadCSV = (csvContent: string, fromDate: string, toDate: string) => {
@@ -1567,7 +1514,7 @@ export const MedicalRecordsPage: React.FC<MedicalRecordsPageProps> = ({ userRole
     const BOM = '\uFEFF';
     const csvWithBOM = BOM + csvContent;
     
-    // Create blob
+    // Create blob with proper CSV MIME type
     const blob = new Blob([csvWithBOM], { 
       type: 'text/csv;charset=utf-8;' 
     });
