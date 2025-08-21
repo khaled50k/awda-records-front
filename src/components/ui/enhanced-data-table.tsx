@@ -188,77 +188,83 @@ export function EnhancedDataTable<T>({
 
   const handleExport = (format: 'csv' | 'pdf') => {
     if (format === 'csv') {
-      // Filter out actions column and any other non-exportable columns
-      const exportableColumns = columns.filter(col => 
-        col.exportable !== false && 
-        col.key !== 'actions' && 
-        !col.label.includes('الإجراءات')
-      );
-      
-      const headers = exportableColumns.map(col => col.label);
-      // Enhanced data extraction for CSV export
-      const enhancedData = data.map(record => {
-        const enhancedRecord: Record<string, any> = {};
+      // Use the custom onExport callback for CSV instead of built-in logic
+      if (onExport) {
+        onExport(format);
+      } else {
+        // Fallback to built-in CSV export if no custom handler provided
+        // Filter out actions column and any other non-exportable columns
+        const exportableColumns = columns.filter(col => 
+          col.exportable !== false && 
+          col.key !== 'actions' && 
+          !col.label.includes('الإجراءات')
+        );
         
-        exportableColumns.forEach(col => {
-          const value = getValue(record, col.key);
+        const headers = exportableColumns.map(col => col.label);
+        // Enhanced data extraction for CSV export
+        const enhancedData = data.map(record => {
+          const enhancedRecord: Record<string, any> = {};
           
-          // Debug logging for troubleshooting
-          if (process.env.NODE_ENV === 'development') {
-            console.log(`Column: ${String(col.label)}, Key: ${String(col.key)}, Value:`, value);
-            console.log('Full record:', record);
-          }
-          
-          enhancedRecord[col.label] = value || '';
-        });
-        
-        return enhancedRecord;
-      });
-      
-      const csvContent = [
-        headers.join(','),
-        ...enhancedData.map(record => 
-          headers.map(header => {
-            const value = record[header];
+          exportableColumns.forEach(col => {
+            const value = getValue(record, col.key);
             
             // Debug logging for troubleshooting
             if (process.env.NODE_ENV === 'development') {
-              console.log(`Header: ${String(header)}, Value:`, value);
+              console.log(`Column: ${String(col.label)}, Key: ${String(col.key)}, Value:`, value);
+              console.log('Full record:', record);
             }
             
-            // Handle different value types and ensure proper CSV formatting
-            if (value === null || value === undefined) {
-              return '';
-            } else if (typeof value === 'string') {
-              // Escape quotes and wrap in quotes if contains comma, newline, or quote
-              const escapedValue = value.replace(/"/g, '""');
-              if (escapedValue.includes(',') || escapedValue.includes('\n') || escapedValue.includes('"')) {
-                return `"${escapedValue}"`;
+            enhancedRecord[col.label] = value || '';
+          });
+          
+          return enhancedRecord;
+        });
+        
+        const csvContent = [
+          headers.join(','),
+          ...enhancedData.map(record => 
+            headers.map(header => {
+              const value = record[header];
+              
+              // Debug logging for troubleshooting
+              if (process.env.NODE_ENV === 'development') {
+                console.log(`Header: ${String(header)}, Value:`, value);
               }
-              return escapedValue;
-            } else if (typeof value === 'boolean') {
-              return value ? 'نعم' : 'لا';
-            } else if (typeof value === 'number') {
-              return String(value);
-            } else if (typeof value === 'object') {
-              // Handle objects by converting to string representation
-              return JSON.stringify(value);
-            } else {
-              return String(value);
-            }
-          }).join(',')
-        )
-      ].join('\n');
-      
-      const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
-      const link = document.createElement('a');
-      const url = URL.createObjectURL(blob);
-      link.setAttribute('href', url);
-      link.setAttribute('download', `${title || 'data'}.csv`);
-      link.style.visibility = 'hidden';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+              
+              // Handle different value types and ensure proper CSV formatting
+              if (value === null || value === undefined) {
+                return '';
+              } else if (typeof value === 'string') {
+                // Escape quotes and wrap in quotes if contains comma, newline, or quote
+                const escapedValue = value.replace(/"/g, '""');
+                if (escapedValue.includes(',') || escapedValue.includes('\n') || escapedValue.includes('"')) {
+                  return `"${escapedValue}"`;
+                }
+                return escapedValue;
+              } else if (typeof value === 'boolean') {
+                return value ? 'نعم' : 'لا';
+              } else if (typeof value === 'number') {
+                return String(value);
+              } else if (typeof value === 'object') {
+                // Handle objects by converting to string representation
+                return JSON.stringify(value);
+              } else {
+                return String(value);
+              }
+            }).join(',')
+          )
+        ].join('\n');
+        
+        const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', `${title || 'data'}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
     } else if (format === 'pdf') {
       // For PDF, we'll call the onExport callback if provided
       onExport?.(format);

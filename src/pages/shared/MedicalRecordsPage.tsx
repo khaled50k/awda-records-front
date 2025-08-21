@@ -6,9 +6,9 @@ import {
   createMedicalRecordAsync,
   updateMedicalRecordAsync,
   deleteMedicalRecordAsync,
-  getDailyTransfersReportAsync,
   setFilters, 
-  clearFilters 
+  clearFilters,
+  getDailyTransfersReportAsync
 } from '../../store/slices/medicalRecordSlice';
 import { getPatientsAsync } from '../../store/slices/patientSlice';
 import { getUsersAsync } from '../../store/slices/userSlice';
@@ -17,7 +17,7 @@ import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import { Input } from '../../components/ui/input';
 import { EnhancedDataTable } from '../../components/ui/enhanced-data-table';
-import { Plus, FileText, Calendar, Edit, Eye, Search, Send, Download, User, Hash, X, ArrowRightLeft, Users, Clock } from 'lucide-react';
+import { Plus, FileText, Calendar, Edit, Eye, Search, Send, User, Hash, X, ArrowRightLeft, Users, Clock } from 'lucide-react';
 import { MedicalRecord, Patient, User as UserType, StaticData } from '../../types/api';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from '../../components/ui/dialog';
 import { Label } from '../../components/ui/label';
@@ -976,6 +976,9 @@ export const MedicalRecordsPage: React.FC<MedicalRecordsPageProps> = ({ userRole
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const { medicalRecords, loading, pagination, filters, dailyTransfersReport } = useSelector((state: RootState) => state.medicalRecords);
+  
+  // Local state to track current filter values for export
+  const [currentFilters, setCurrentFilters] = useState<Record<string, string | number | boolean>>({});
   const { patients } = useSelector((state: RootState) => state.patients);
   const { staticData } = useSelector((state: RootState) => state.staticData);
   const { users } = useSelector((state: RootState) => state.users);
@@ -1292,25 +1295,25 @@ export const MedicalRecordsPage: React.FC<MedicalRecordsPageProps> = ({ userRole
 
     // Date range filters - Most important ones first
     {
-      key: 'created_from',
+      key: 'createdFrom',
       label: 'من تاريخ',
       type: 'date' as const,
       placeholder: 'من تاريخ'
     },
     {
-      key: 'created_to',
+      key: 'createdTo',
       label: 'إلى تاريخ',
       type: 'date' as const,
       placeholder: 'إلى تاريخ'
     },
     {
-      key: 'modified_from',
+      key: 'modifiedFrom',
       label: 'تاريخ التعديل من',
       type: 'date' as const,
       placeholder: 'من تاريخ'
     },
     {
-      key: 'modified_to',
+      key: 'modifiedTo',
       label: 'تاريخ التعديل إلى',
       type: 'date' as const,
       placeholder: 'إلى تاريخ'
@@ -1328,7 +1331,7 @@ export const MedicalRecordsPage: React.FC<MedicalRecordsPageProps> = ({ userRole
 
   // Custom filter renderer for date fields
   const renderCustomFilter = (filterKey: string, filterValue: string | number | boolean, onFilterChange: (key: string, value: string | number | boolean) => void) => {
-    if (filterKey.includes('_from') || filterKey.includes('_to')) {
+    if (filterKey.includes('From') || filterKey.includes('To')) {
       return (
         <CalendarFilter
           value={filterValue as string}
@@ -1343,6 +1346,17 @@ export const MedicalRecordsPage: React.FC<MedicalRecordsPageProps> = ({ userRole
 
   // Handle filtering
   const handleFilter = (filters: Record<string, string | number | boolean>) => {
+    console.log('🔍 handleFilter called with:', filters);
+    console.log('📅 Date filters in handleFilter:', {
+      createdFrom: filters.createdFrom,
+      createdTo: filters.createdTo,
+      modifiedFrom: filters.modifiedFrom,
+      modifiedTo: filters.modifiedTo
+    });
+    
+    // Update local state for export functionality
+    setCurrentFilters(filters);
+    
     const params: Record<string, string | number | boolean> = { page: 1, perPage: pagination.perPage };
     
     // Map filter keys to service parameters
@@ -1375,27 +1389,213 @@ export const MedicalRecordsPage: React.FC<MedicalRecordsPageProps> = ({ userRole
       params.reviewedPartyUserId = filters.reviewed_party_user_id;
     }
     
-    // Date range filters
-    if (filters.created_from) {
-      params.createdFrom = filters.created_from;
+    // Date range filters - these are camelCase in filterOptions
+    if (filters.createdFrom) {
+      params.createdFrom = filters.createdFrom;
     }
-    if (filters.created_to) {
-      params.createdTo = filters.created_to;
+    if (filters.createdTo) {
+      params.createdTo = filters.createdTo;
     }
-    if (filters.modified_from) {
-      params.modifiedFrom = filters.modified_from;
+    if (filters.modifiedFrom) {
+      params.modifiedFrom = filters.modifiedFrom;
     }
-    if (filters.modified_to) {
-      params.modifiedTo = filters.modified_to;
+    if (filters.modifiedTo) {
+      params.modifiedTo = filters.modifiedTo;
     }
     
- 
+    // Transfer filters
     if (filters.transfer_notes) {
       params.transferNotes = filters.transfer_notes;
     }
     
+    console.log('🚀 Final params for API call:', params);
+    
     // Dispatch the action with mapped parameters
     dispatch(getMedicalRecordsAsync(params));
+  };
+
+  // Handle export functionality
+  const handleExport = async () => {
+    try {
+      console.log('🚀 Starting export process...');
+      console.log('🔍 Redux filters state:', filters);
+      console.log('🔍 Local currentFilters state:', currentFilters);
+      
+      // Determine date range from filters or use current date
+      let fromDate: string;
+      let toDate: string;
+
+      // Check if we have any date filters set
+      if (currentFilters.createdFrom || currentFilters.createdTo) {
+        // Use whatever date filters are available
+        fromDate = typeof currentFilters.createdFrom === 'string' ? currentFilters.createdFrom : format(new Date(), 'yyyy-MM-dd');
+        toDate = typeof currentFilters.createdTo === 'string' ? currentFilters.createdTo : 
+                (typeof currentFilters.createdFrom === 'string' ? currentFilters.createdFrom : format(new Date(), 'yyyy-MM-dd'));
+        
+        console.log('✅ Using available date filters:', {
+          createdFrom: currentFilters.createdFrom,
+          createdTo: currentFilters.createdTo,
+          finalFromDate: fromDate,
+          finalToDate: toDate
+        });
+      } else {
+        // Fall back to current date if no filters set
+        const today = new Date();
+        fromDate = format(today, 'yyyy-MM-dd');
+        toDate = format(today, 'yyyy-MM-dd');
+        console.log('📅 Using current date as fallback:', fromDate);
+      }
+
+      // Show loading toast
+      toast({
+        title: "جاري التصدير...",
+        description: `جاري إعداد التقرير من ${fromDate} إلى ${toDate}`,
+      });
+
+      // Call the backend API to get daily transfers report
+      console.log('📡 Calling API with dates:', { from_date: fromDate, to_date: toDate });
+      
+      const result = await dispatch(getDailyTransfersReportAsync({
+        from_date: fromDate,
+        to_date: toDate
+      })).unwrap();
+
+      console.log('📊 API Response received:', result);
+
+      console.log('🔍 Checking API response data:', {
+        success: result.success,
+        hasData: !!result.data,
+        hasPatients: !!(result.data && result.data.patients),
+        patientsCount: result.data?.patients?.length || 0,
+        dateRange: result.data?.date_range,
+        summary: result.data?.summary
+      });
+
+      if (result.success && result.data && result.data.patients && result.data.patients.length > 0) {
+        // Convert the data to CSV format
+        const csvContent = convertToCSV(result.data);
+        
+        // Create and download the CSV file
+        downloadCSV(csvContent, fromDate, toDate);
+        
+        toast({
+          title: "تم التصدير بنجاح",
+          description: `تم تصدير ${result.data.patients.length} سجل بنجاح`,
+        });
+      } else {
+        console.warn('⚠️ No data returned from API:', result);
+        console.log('📊 Data structure:', {
+          data: result.data,
+          patients: result.data?.patients,
+          length: result.data?.patients?.length
+        });
+        
+        toast({
+          title: "لا توجد بيانات",
+          description: "لم يتم العثور على بيانات للتصدير في التاريخ المحدد",
+          variant: "destructive",
+        });
+      }
+
+    } catch (error) {
+      console.error('❌ Export error:', error);
+      toast({
+        title: "خطأ في التصدير",
+        description: "حدث خطأ أثناء تصدير التقرير",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Convert API data to CSV format
+  const convertToCSV = (data: { patients: Array<{
+    patient_id?: number;
+    patient_name?: string;
+    doctor_or_reviewed_party?: string;
+    'عيادات خارجية'?: string;
+    ' مختبر'?: string;
+    'تمريض'?: string;
+    ' صيدلية'?: string;
+    'خدمات الجمهور'?: string;
+    ' أشعة'?: string;
+    'تقارير'?: string;
+    'أقسام وعمليات'?: string;
+    'مخازن'?: string;
+  }> }) => {
+    const headers = [
+      'رقم المريض',
+      'اسم المريض',
+      'اسم الطبيب (المدقق عليه)',
+      'عيادات خارجية',
+      'مختبر',
+      'تمريض',
+      'صيدلية',
+      'خدمات الجمهور',
+      'أشعة',
+      'تقارير',
+      'أقسام وعمليات',
+      'مخازن'
+    ];
+
+    const csvRows = [headers.join(',')];
+
+    // Process each patient
+    data.patients.forEach((patient) => {
+      const row = [
+        `"${patient.patient_id || ''}"`,
+        `"${patient.patient_name || ''}"`,
+        `"${patient.doctor_or_reviewed_party || ''}"`,
+        `"${patient['عيادات خارجية'] || ''}"`,
+        `"${patient[' مختبر'] || ''}"`,
+        `"${patient['تمريض'] || ''}"`,
+        `"${patient[' صيدلية'] || ''}"`,
+        `"${patient['خدمات الجمهور'] || ''}"`,
+        `"${patient[' أشعة'] || ''}"`,
+        `"${patient['تقارير'] || ''}"`,
+        `"${patient['أقسام وعمليات'] || ''}"`,
+        `"${patient['مخازن'] || ''}"`
+      ];
+      csvRows.push(row.join(','));
+    });
+
+    return csvRows.join('\n');
+  };
+
+  // Download CSV file
+  const downloadCSV = (csvContent: string, fromDate: string, toDate: string) => {
+    // Add BOM for Arabic text support
+    const BOM = '\uFEFF';
+    const csvWithBOM = BOM + csvContent;
+    
+    // Create blob
+    const blob = new Blob([csvWithBOM], { 
+      type: 'text/csv;charset=utf-8;' 
+    });
+    
+    // Create download link
+    const downloadLink = document.createElement('a');
+    downloadLink.href = URL.createObjectURL(blob);
+    
+    // Create filename based on date range
+    let filename: string;
+    if (fromDate === toDate) {
+      filename = `تقرير_اليومي_${fromDate}.csv`;
+    } else {
+      filename = `تقرير_من_${fromDate}_إلى_${toDate}.csv`;
+    }
+    
+    downloadLink.download = filename;
+    downloadLink.style.display = 'none';
+    
+    // Trigger download
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    
+    // Cleanup
+    setTimeout(() => {
+      document.body.removeChild(downloadLink);
+      URL.revokeObjectURL(downloadLink.href);
+    }, 100);
   };
 
   // Handle clearing filters
@@ -1404,138 +1604,6 @@ export const MedicalRecordsPage: React.FC<MedicalRecordsPageProps> = ({ userRole
     dispatch(clearFilters());
     // Refresh data with default parameters
     dispatch(getMedicalRecordsAsync({ page: 1, perPage: pagination.perPage }));
-  };
-
-  // Grouped Excel Export Function
-  const handleGroupedExport = (format: 'csv' | 'pdf') => {
-    if (format === 'csv') {
-      exportDailyTransfersReport();
-    } else if (format === 'pdf') {
-      exportGroupedToPDF();
-    }
-  };
-
-  const exportDailyTransfersReport = async () => {
-    try {
-      // Get current date for the report
-      const today = new Date();
-      const todayString = format(today, 'yyyy-MM-dd');
-      
-      console.log('Starting export for date:', todayString);
-      
-      // Call the API to get the daily transfers report
-      const result = await dispatch(getDailyTransfersReportAsync({
-        from_date: todayString,
-        to_date: todayString
-      })).unwrap();
-      
-      console.log('API response:', result);
-      
-      if (result.success && result.data) {
-        // Convert JSON API response to CSV format
-        const exportRows: Record<string, string>[] = [];
-        
-        result.data.patients.forEach((patient, index) => {
-          const row: Record<string, string> = {
-            'اسم المريض': patient.patient_name || '',
-            'المدقق عليه': patient.doctor_or_reviewed_party || '',
-            'عيادات خارجية': patient['عيادات خارجية'] || '',
-            ' مختبر': patient[' مختبر'] || '',
-            'تمريض': patient['تمريض'] || '',
-            ' صيدلية': patient[' صيدلية'] || '',
-            'خدمات الجمهور': patient['خدمات الجمهور'] || '',
-            ' أشعة': patient[' أشعة'] || '',
-            'تقارير': patient['تقارير'] || '',
-            'أقسام وعمليات': patient['أقسام وعمليات'] || '',
-            'مخازن': patient['مخازن'] || ''
-          };
-          
-          exportRows.push(row);
-          console.log(`Row ${index + 1}:`, row);
-        });
-
-        // Define CSV headers in Arabic
-        const headers = [
-          'اسم المريض',
-          'المدقق عليه',
-          'عيادات خارجية',
-          ' مختبر',
-          'تمريض',
-          ' صيدلية',
-          'خدمات الجمهور',
-          ' أشعة',
-          'تقارير',
-          'أقسام وعمليات',
-          'مخازن'
-        ];
-        
-        // Convert to CSV content with proper encoding
-        const csvContent = [
-          headers.join(','),
-          ...exportRows.map(row => 
-            headers.map(header => {
-              const value = row[header] || '';
-              // Escape commas and quotes in CSV
-              if (typeof value === 'string' && (value.includes(',') || value.includes('"') || value.includes('\n'))) {
-                return `"${value.replace(/"/g, '""')}"`;
-              }
-              return value;
-            }).join(',')
-          )
-        ].join('\n');
-
-        console.log('CSV Content:', csvContent);
-        console.log('Total rows:', exportRows.length);
-
-        // Create CSV file and download
-        try {
-          // Method 1: Try data URL first (avoids blob security warnings)
-          const dataUrl = 'data:text/csv;charset=utf-8,' + encodeURIComponent('\ufeff' + csvContent);
-          const link = document.createElement('a');
-          link.href = dataUrl;
-          link.download = `تقرير_النقل_اليومي_${todayString}.csv`;
-          link.style.display = 'none';
-          
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-          
-          toast({
-            title: "تم التصدير بنجاح",
-            description: `تم تصدير تقرير النقل اليومي لـ ${result.data.summary.total_patients} مريض`,
-          });
-        } catch (downloadError) {
-          console.error('Download error:', downloadError);
-          toast({
-            title: "خطأ في التحميل",
-            description: "حدث خطأ أثناء تحميل الملف. يرجى المحاولة مرة أخرى.",
-            variant: "destructive",
-          });
-        }
-      } else {
-        console.error('API response not successful:', result);
-        toast({
-          title: "خطأ في البيانات",
-          description: "لم يتم العثور على بيانات التقرير",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      console.error('Export error:', error);
-      toast({
-        title: "خطأ في التصدير",
-        description: "حدث خطأ أثناء تصدير تقرير النقل اليومي",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const exportGroupedToPDF = () => {
-    // For now, just show a message that PDF export is not implemented
-    toast({
-      title: "تصدير PDF",
-      description: "سيتم إضافة تصدير PDF قريباً",
-    });
   };
 
   return (
@@ -1547,42 +1615,19 @@ export const MedicalRecordsPage: React.FC<MedicalRecordsPageProps> = ({ userRole
             إدارة السجلات الطبية والملفات الصحية
           </p>
         </div>
+        <div className="flex items-center gap-2">
+
+      
         <Button onClick={() => navigate('/admin/medical-records/create')}>
           <Plus className="w-4 h-4 ml-2" />
           إنشاء سجل طبي جديد
         </Button>
+        </div>
+
       </div>
 
       {/* Stats Cards */}
       <StatsCards medicalRecords={medicalRecords} />
-
-      {/* Daily Transfers Report Summary */}
-      {dailyTransfersReport && (
-        <Card className="bg-blue-50 border-blue-200">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-blue-900">تقرير النقل اليومي</h3>
-              <Badge className="bg-blue-100 text-blue-800">
-                {dailyTransfersReport.data.date_range.from_date} - {dailyTransfersReport.data.date_range.to_date}
-              </Badge>
-            </div>
-            <div className="grid grid-cols-3 gap-4 text-center">
-              <div>
-                <div className="text-2xl font-bold text-blue-600">{dailyTransfersReport.data.summary.total_patients}</div>
-                <div className="text-sm text-blue-700">إجمالي المرضى</div>
-              </div>
-              <div>
-                <div className="text-2xl font-bold text-blue-600">{dailyTransfersReport.data.summary.total_records}</div>
-                <div className="text-sm text-blue-700">إجمالي السجلات</div>
-              </div>
-              <div>
-                <div className="text-2xl font-bold text-blue-600">{dailyTransfersReport.data.summary.total_transfers}</div>
-                <div className="text-sm text-blue-700">إجمالي التحويلات</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Data Table */}
       <Card>
@@ -1608,7 +1653,7 @@ export const MedicalRecordsPage: React.FC<MedicalRecordsPageProps> = ({ userRole
             title="السجلات الطبية"
             renderCustomFilter={renderCustomFilter}
             exportEnabled={true}
-            onExport={handleGroupedExport}
+            onExport={handleExport}
           />
         </CardContent>
       </Card>
