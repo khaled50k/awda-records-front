@@ -204,10 +204,27 @@ export const getDailyTransfersReportAsync = createAsyncThunk(
   'medicalRecords/getDailyTransfersReport',
   async (params: DailyTransfersReportRequest = {}, { rejectWithValue }) => {
     try {
+      console.log('🚀 Calling medicalRecordService.getDailyTransfersReport with params:', params);
       const response = await medicalRecordService.getDailyTransfersReport(params);
-      // Extract the CSV string from the API response
-      return response.data;
+      console.log('🔍 Raw API response:', response);
+      console.log('🔍 Response type:', typeof response);
+      console.log('🔍 Response keys:', response && typeof response === 'object' ? Object.keys(response) : 'N/A');
+      
+      // Check if response has data property or is the CSV string directly
+      if (response && typeof response === 'object' && 'data' in response) {
+        console.log('📊 Response has data property:', response.data);
+        console.log('📊 Data type:', typeof response.data);
+        return response.data;
+      } else if (typeof response === 'string') {
+        console.log('📊 Response is direct string, length:', response.length);
+        console.log('📊 First 100 chars:', response.substring(0, 100));
+        return response;
+      } else {
+        console.warn('⚠️ Unexpected response format:', response);
+        return rejectWithValue('Unexpected response format from API');
+      }
     } catch (error: unknown) {
+      console.error('❌ Error in getDailyTransfersReportAsync:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to fetch daily transfers report';
       return rejectWithValue(errorMessage);
     }
