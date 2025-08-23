@@ -1002,10 +1002,18 @@ export const MedicalRecordsPage: React.FC<MedicalRecordsPageProps> = ({ userRole
   });
 
   useEffect(() => {
+    console.log('🚀 Initial data loading...');
+    console.log('📊 Initial pagination state:', pagination);
     dispatch(getMedicalRecordsAsync({ page: 1, perPage: 15 }));
     dispatch(getPatientsAsync({ page: 1, perPage: 100 })); // Fetch all patients for the select
     dispatch(getUsersAsync({ page: 1, perPage: 100 })); // Fetch all users for the recipient search
   }, [dispatch]);
+
+  // Debug effect to monitor pagination changes
+  useEffect(() => {
+    console.log('📊 Pagination state changed:', pagination);
+    console.log('📊 Medical records count:', medicalRecords.length);
+  }, [pagination, medicalRecords.length]);
 
   const handleCreateRecord = async (data: typeof formData) => {
     try {
@@ -1357,7 +1365,10 @@ export const MedicalRecordsPage: React.FC<MedicalRecordsPageProps> = ({ userRole
     // Update local state for export functionality
     setCurrentFilters(filters);
     
-    const params: Record<string, string | number | boolean> = { page: 1, perPage: pagination.perPage };
+    const params: Record<string, string | number | boolean> = { 
+      page: 1, // Reset to first page when filtering
+      perPage: pagination.perPage 
+    };
     
     // Map filter keys to service parameters
     if (filters.search) {
@@ -1534,8 +1545,11 @@ export const MedicalRecordsPage: React.FC<MedicalRecordsPageProps> = ({ userRole
 
   // Handle clearing filters
   const handleClearFilters = () => {
+    console.log('🧹 Clearing filters and resetting pagination');
     // Clear filters in the store
     dispatch(clearFilters());
+    // Clear local filters state
+    setCurrentFilters({});
     // Refresh data with default parameters
     dispatch(getMedicalRecordsAsync({ page: 1, perPage: pagination.perPage }));
   };
@@ -1566,6 +1580,13 @@ export const MedicalRecordsPage: React.FC<MedicalRecordsPageProps> = ({ userRole
       {/* Data Table */}
       <Card>
         <CardContent className="p-0">
+          {/* Debug pagination info */}
+          {process.env.NODE_ENV === 'development' && (
+            <div className="p-4 bg-gray-50 border-b text-xs text-gray-600">
+              <strong>Debug Pagination:</strong> Current: {pagination.currentPage}, Last: {pagination.lastPage}, PerPage: {pagination.perPage}, Total: {pagination.total}
+            </div>
+          )}
+          
           <EnhancedDataTable
             data={medicalRecords}
             columns={columns}
@@ -1576,7 +1597,17 @@ export const MedicalRecordsPage: React.FC<MedicalRecordsPageProps> = ({ userRole
               per_page: pagination.perPage,
               total: pagination.total
             }}
-            onPageChange={(page) => dispatch(getMedicalRecordsAsync({ page, perPage: pagination.perPage }))}
+            onPageChange={(page) => {
+              console.log('🔄 Page change requested:', page);
+              // Preserve current filters when changing pages
+              const currentParams = { 
+                page, 
+                perPage: pagination.perPage,
+                ...currentFilters
+              };
+              console.log('📡 Dispatching with params:', currentParams);
+              dispatch(getMedicalRecordsAsync(currentParams));
+            }}
             onFilter={handleFilter}
             onClearFilters={handleClearFilters}
             filterOptions={filterOptions}
@@ -1587,8 +1618,21 @@ export const MedicalRecordsPage: React.FC<MedicalRecordsPageProps> = ({ userRole
             title="السجلات الطبية"
             renderCustomFilter={renderCustomFilter}
             exportEnabled={true}
-            onExport={handleExport}
+            onExport={(format) => handleExport()}
           />
+          
+          {/* Debug pagination props */}
+          {process.env.NODE_ENV === 'development' && (
+            <div className="p-4 bg-yellow-50 border border-yellow-200 text-xs text-yellow-800">
+              <strong>Debug EnhancedDataTable Props:</strong><br/>
+              Pagination: {JSON.stringify({
+                current_page: pagination.currentPage,
+                last_page: pagination.lastPage,
+                per_page: pagination.perPage,
+                total: pagination.total
+              })}
+            </div>
+          )}
         </CardContent>
       </Card>
 

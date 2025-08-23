@@ -411,13 +411,21 @@ export const medicalRecordSlice = createSlice({
       .addCase(getMedicalRecordsAsync.fulfilled, (state, action: PayloadAction<ApiResponse<PaginatedResponse<MedicalRecord>>>) => {
         state.loading = false;
         if (action.payload.success && action.payload.data) {
+          console.log('📊 API Response received:', action.payload);
+          
+          // Extract pagination data from the nested structure
+          const paginationData = action.payload.data.pagination;
+          console.log('📊 Pagination data:', paginationData);
+          
           state.medicalRecords = action.payload.data.data;
           state.pagination = {
-            currentPage: action.payload.data.current_page,
-            perPage: action.payload.data.per_page,
-            total: action.payload.data.total,
-            lastPage: action.payload.data.last_page,
+            currentPage: paginationData.current_page,
+            perPage: paginationData.per_page,
+            total: paginationData.total,
+            lastPage: paginationData.last_page,
           };
+          
+          console.log('📊 Updated Redux state:', state.pagination);
         }
       })
       .addCase(getMedicalRecordsAsync.rejected, (state, action) => {
@@ -433,12 +441,15 @@ export const medicalRecordSlice = createSlice({
       .addCase(getMedicalRecordsByPatientAsync.fulfilled, (state, action: PayloadAction<ApiResponse<PaginatedResponse<MedicalRecord>>>) => {
         state.loading = false;
         if (action.payload.success && action.payload.data) {
+          // Extract pagination data from the nested structure
+          const paginationData = action.payload.data.pagination;
+          
           state.medicalRecords = action.payload.data.data;
           state.pagination = {
-            currentPage: action.payload.data.current_page,
-            perPage: action.payload.data.per_page,
-            total: action.payload.data.total,
-            lastPage: action.payload.data.last_page,
+            currentPage: paginationData.current_page,
+            perPage: paginationData.per_page,
+            total: paginationData.total,
+            lastPage: paginationData.last_page,
           };
         }
       })
@@ -455,12 +466,15 @@ export const medicalRecordSlice = createSlice({
       .addCase(getMedicalRecordsByStatusAsync.fulfilled, (state, action: PayloadAction<ApiResponse<PaginatedResponse<MedicalRecord>>>) => {
         state.loading = false;
         if (action.payload.success && action.payload.data) {
+          // Extract pagination data from the nested structure
+          const paginationData = action.payload.data.pagination;
+          
           state.medicalRecords = action.payload.data.data;
           state.pagination = {
-            currentPage: action.payload.data.current_page,
-            perPage: action.payload.data.per_page,
-            total: action.payload.data.total,
-            lastPage: action.payload.data.last_page,
+            currentPage: paginationData.current_page,
+            perPage: paginationData.per_page,
+            total: paginationData.total,
+            lastPage: paginationData.last_page,
           };
         }
       })
@@ -479,12 +493,15 @@ export const medicalRecordSlice = createSlice({
       .addCase(getMedicalRecordsByCreatorAsync.fulfilled, (state, action: PayloadAction<ApiResponse<PaginatedResponse<MedicalRecord>>>) => {
         state.loading = false;
         if (action.payload.success && action.payload.data) {
+          // Extract pagination data from the nested structure
+          const paginationData = action.payload.data.pagination;
+          
           state.medicalRecords = action.payload.data.data;
           state.pagination = {
-            currentPage: action.payload.data.current_page,
-            perPage: action.payload.data.per_page,
-            total: action.payload.data.total,
-            lastPage: action.payload.data.last_page,
+            currentPage: paginationData.current_page,
+            perPage: paginationData.per_page,
+            total: paginationData.total,
+            lastPage: paginationData.last_page,
           };
         }
       })
