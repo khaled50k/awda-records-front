@@ -71,7 +71,7 @@ const SearchablePatientInput: React.FC<SearchablePatientInputProps> = ({
     } else {
       setIsSearching(false);
     }
-  }, [debouncedSearchTerm, dispatch]);
+  }, [debouncedSearchTerm]); // Remove dispatch from dependencies
 
   const filteredPatients = patients.filter(patient =>
     patient.full_name.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
@@ -201,7 +201,7 @@ const SearchableRecipientInput: React.FC<SearchableRecipientInputProps> = ({
     } else {
       setIsSearching(false);
     }
-  }, [debouncedSearchTerm, dispatch]);
+  }, [debouncedSearchTerm]); // Remove dispatch from dependencies
 
   const filteredUsers = users.filter(user =>
     user.full_name.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
@@ -336,10 +336,14 @@ export const EditMedicalRecordPage: React.FC = () => {
   }, [currentRecord]);
 
   useEffect(() => {
-    // Load initial data
-    dispatch(getPatientsAsync({ page: 1, perPage: 100 }));
-    dispatch(getUsersAsync({ page: 1, perPage: 100 }));
-  }, [dispatch]);
+    // Load initial data only once when component mounts
+    if (patients.length === 0) {
+      dispatch(getPatientsAsync({ page: 1, perPage: 100 }));
+    }
+    if (users.length === 0) {
+      dispatch(getUsersAsync({ page: 1, perPage: 100 }));
+    }
+  }, []); // Empty dependency array - only run once on mount
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
