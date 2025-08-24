@@ -642,22 +642,22 @@ export const EditMedicalRecordPage: React.FC = () => {
 
                   <div className="space-y-2">
                     <Label htmlFor="transfer_status_code">حالة التحويل</Label>
-                    <Select 
-                      value={formData.transfer_status_code || ''} 
-                      onValueChange={(value) => setFormData({ ...formData, transfer_status_code: value || null })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="اختر حالة التحويل" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="">بدون حالة</SelectItem>
-                        {staticData?.status?.map((status) => (
-                          <SelectItem key={status.code} value={status.code}>
-                            {status.label_ar}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                                         <Select 
+                       value={formData.transfer_status_code || 'none'} 
+                       onValueChange={(value) => setFormData({ ...formData, transfer_status_code: value === 'none' ? null : value })}
+                     >
+                       <SelectTrigger>
+                         <SelectValue placeholder="اختر حالة التحويل" />
+                       </SelectTrigger>
+                       <SelectContent>
+                         <SelectItem value="none">بدون حالة</SelectItem>
+                         {staticData?.status?.map((status) => (
+                           <SelectItem key={status.code} value={status.code}>
+                             {status.label_ar}
+                           </SelectItem>
+                         ))}
+                       </SelectContent>
+                     </Select>
                   </div>
                 </div>
 
