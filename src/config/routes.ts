@@ -27,6 +27,7 @@ export const ROUTES = {
   ADMIN_PATIENT_VIEW: '/admin/patients/:patientId',
   ADMIN_MEDICAL_RECORDS: '/admin/medical-records',
   ADMIN_MEDICAL_RECORDS_CREATE: '/admin/medical-records/create',
+  ADMIN_MEDICAL_RECORDS_EDIT: '/admin/medical-records/:recordId/edit',
   ADMIN_TRANSFERS: '/admin/transfers',
   ADMIN_STATIC_DATA: '/admin/static-data',
   ADMIN_PROFILE: '/admin/profile',

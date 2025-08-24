@@ -1209,31 +1209,42 @@ export const MedicalRecordsPage: React.FC<MedicalRecordsPageProps> = ({ userRole
       exportable: false,
       render: (_: unknown, record: MedicalRecord) => (
         <div className="flex items-center space-x-2 space-x-reverse">
-         {userRole === 'admin' && (
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => navigate(`/admin/medical-records/${record.record_id}`)}
+            onClick={() => navigate(`/admin/medical-records/${record.record_id}/edit`)}
             className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-            title="عرض في صفحة منفصلة"
+            title="تعديل السجل"
           >
-            <Eye className="w-4 h-4" />
+            <Edit className="w-4 h-4" />
           </Button>
-         )}
-              {isAdmin && (
-         <Button
-           variant="ghost"
-           size="sm"
-           onClick={() => {
-             setEditingStatusRecord(record);
-             setIsEditStatusOpen(true);
-           }}
-           className="text-green-600 hover:text-green-700 hover:bg-green-50"
-           title="تعديل الحالة"
-         >
-           <Edit className="w-4 h-4" />
-         </Button>
-              )}
+          
+          {userRole === 'admin' && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate(`/admin/medical-records/${record.record_id}`)}
+              className="text-green-600 hover:text-green-700 hover:bg-green-50"
+              title="عرض في صفحة منفصلة"
+            >
+              <Eye className="w-4 h-4" />
+            </Button>
+          )}
+          
+          {isAdmin && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setEditingStatusRecord(record);
+                setIsEditStatusOpen(true);
+              }}
+              className="text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+              title="تعديل الحالة"
+            >
+              <Send className="w-4 h-4" />
+            </Button>
+          )}
         </div>
       ),
     },

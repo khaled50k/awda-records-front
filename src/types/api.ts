@@ -125,11 +125,13 @@ export interface CreateMedicalRecordRequest {
 }
 
 export interface UpdateMedicalRecordRequest {
+  patient_id?: number;
   recipient_id?: number;
   problem_type_code?: string;
   danger_level_code?: string;
-  reviewed_party_user_id?: number;
+  reviewed_party?: string;
   status_code?: string;
+  transfer_status_code?: string | null;
   transfer_notes?: string;
 }
 

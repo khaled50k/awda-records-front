@@ -17,6 +17,7 @@ import { MedicalRecordsPage } from './pages/shared/MedicalRecordsPage';
 import { CreateMedicalRecordPage } from './pages/shared/CreateMedicalRecordPage';
 import { CreatePatientPage } from './pages/shared/CreatePatientPage';
 import { ViewMedicalRecordPage } from './pages/shared/ViewMedicalRecordPage';
+import { EditMedicalRecordPage } from './pages/shared/EditMedicalRecordPage';
 import { TransfersPage } from './pages/shared/TransfersPage';
 import { ViewTransferPage } from './pages/shared/ViewTransferPage';
 import { TransferRecordPage } from './pages/shared/TransferRecordPage';
@@ -81,6 +82,7 @@ const AppContent: React.FC = () => {
               <Route path="medical-records" element={<MedicalRecordsPage userRole="admin" />} />
               <Route path="medical-records/create" element={<CreateMedicalRecordPage />} />
               <Route path="medical-records/:recordId" element={<ViewMedicalRecordPage />} />
+              <Route path="medical-records/:recordId/edit" element={<EditMedicalRecordPage />} />
               <Route path="medical-records/:recordId/transfer" element={<TransferRecordPage />} />
               <Route path="patients/create" element={<CreatePatientPage />} />
 
