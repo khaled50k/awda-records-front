@@ -43,7 +43,7 @@ const initialState: UserState = {
   fieldErrors: {},
   pagination: {
     currentPage: 1,
-    perPage: 15,
+    perPage: 100,
     total: 0,
     lastPage: 1,
   },
@@ -235,7 +235,7 @@ export const userSlice = createSlice({
       state.fieldErrors = {};
       state.pagination = {
         currentPage: 1,
-        perPage: 15,
+        perPage: 100,
         total: 0,
         lastPage: 1,
       };

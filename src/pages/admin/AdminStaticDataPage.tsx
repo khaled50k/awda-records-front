@@ -44,7 +44,7 @@ export const AdminStaticDataPage: React.FC = () => {
   });
 
   useEffect(() => {
-    dispatch(getStaticDataListAsync({ page: 1, perPage: 15 }));
+    dispatch(getStaticDataListAsync({ page: 1, perPage: 100 }));
     dispatch(getStaticDataTypesAsync());
   }, [dispatch]);
 

@@ -17,7 +17,7 @@ import { Label } from '../../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { Textarea } from '../../components/ui/textarea';
 import { Badge } from '../../components/ui/badge';
-import { ArrowLeft, Save, User, Hash, Building2, AlertTriangle, FileText, Send, Edit, Clock, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Save, User, Hash, Building2, AlertTriangle, FileText, Send, Edit } from 'lucide-react';
 import { MedicalRecord, Patient, User as UserType, StaticData, UpdateMedicalRecordRequest } from '../../types/api';
 import { toast } from '../../hooks/use-toast';
 import { useDebounce } from 'use-debounce';
@@ -50,6 +50,7 @@ const SearchablePatientInput: React.FC<SearchablePatientInputProps> = ({
 
   useEffect(() => {
     setSelectedPatientId(value);
+    // If we have a value, find the patient and set the search term
     if (value) {
       const patient = patients.find(p => p.patient_id === value);
       if (patient) {
@@ -58,6 +59,7 @@ const SearchablePatientInput: React.FC<SearchablePatientInputProps> = ({
     }
   }, [value, patients]);
 
+  // Search patients when user types
   useEffect(() => {
     if (debouncedSearchTerm && debouncedSearchTerm.length >= 2) {
       setIsSearching(true);
@@ -71,12 +73,14 @@ const SearchablePatientInput: React.FC<SearchablePatientInputProps> = ({
     } else {
       setIsSearching(false);
     }
-  }, [debouncedSearchTerm]); // Remove dispatch from dependencies
+  }, [debouncedSearchTerm, dispatch]);
 
   const filteredPatients = patients.filter(patient =>
     patient.full_name.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
     patient.national_id.toString().includes(debouncedSearchTerm)
   );
+
+  const selectedPatient = patients.find(p => p.patient_id === selectedPatientId);
 
   const handlePatientSelect = (patient: Patient) => {
     setSelectedPatientId(patient.patient_id);
@@ -86,69 +90,77 @@ const SearchablePatientInput: React.FC<SearchablePatientInputProps> = ({
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = e.target.value;
-    setSearchTerm(newValue);
-    
-    if (selectedPatientId && newValue !== patients.find(p => p.patient_id === selectedPatientId)?.full_name) {
+    setSearchTerm(e.target.value);
+    setShowResults(true);
+    if (!e.target.value) {
       setSelectedPatientId(null);
       onChange(null);
     }
   };
 
   const handleInputFocus = () => {
-    if (searchTerm.length >= 2 && !selectedPatientId) {
+    if (searchTerm) {
       setShowResults(true);
     }
   };
 
   const handleInputBlur = () => {
+    // Delay hiding results to allow clicking on them
     setTimeout(() => setShowResults(false), 200);
   };
 
   return (
     <div className="relative">
       <Input
-        placeholder={placeholder}
         value={searchTerm}
         onChange={handleInputChange}
         onFocus={handleInputFocus}
         onBlur={handleInputBlur}
-        className="pr-10"
+        placeholder={placeholder}
         disabled={disabled}
+        className="w-full"
       />
-      <User className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
       
       {showResults && (
-        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-auto">
-          {isSearching ? (
-            <div className="p-3 text-center text-sm text-muted-foreground">
-              جاري البحث...
-            </div>
-          ) : filteredPatients.length > 0 ? (
-            filteredPatients.map((patient) => (
-              <div
-                key={patient.patient_id}
-                className="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
-                onClick={() => handlePatientSelect(patient)}
-              >
-                <div className="flex items-center space-x-2 space-x-reverse">
-                  <User className="w-4 h-4 text-muted-foreground" />
-                  <div>
-                    <div className="font-medium">{patient.full_name}</div>
-                    <div className="text-sm text-muted-foreground">
-                      <Hash className="w-3 h-3 inline ml-1" />
-                      {patient.national_id}
-                    </div>
-                  </div>
-                </div>
+        <>
+          {isSearching && (
+            <div className="absolute top-full left-0 right-0 z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg p-4">
+              <div className="flex items-center justify-center space-x-2 space-x-reverse">
+                <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                <span className="text-sm text-muted-foreground">جاري البحث...</span>
               </div>
-            ))
-          ) : (
-            <div className="p-3 text-center text-sm text-muted-foreground">
-              لا توجد نتائج
             </div>
           )}
-        </div>
+          
+          {!isSearching && (
+            <div className="absolute top-full left-0 right-0 z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg max-h-60 overflow-auto">
+              {filteredPatients.length > 0 ? (
+                filteredPatients.map((patient) => (
+                  <div
+                    key={patient.patient_id}
+                    className="p-3 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer border-b border-gray-100 dark:border-gray-600 last:border-b-0"
+                    onClick={() => handlePatientSelect(patient)}
+                  >
+                    <div className="flex items-center space-x-2 space-x-reverse">
+                      <User className="w-4 h-4 text-muted-foreground" />
+                      <div>
+                        <div className="font-medium">{patient.full_name}</div>
+                        <div className="text-sm text-muted-foreground">
+                          <Hash className="w-3 h-3 inline ml-1" />
+                          {patient.national_id}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="p-3 text-center text-sm text-muted-foreground">
+                  لا توجد نتائج
+                </div>
+              )}
+            </div>
+          )}
+        </>
       )}
     </div>
   );
@@ -180,6 +192,7 @@ const SearchableRecipientInput: React.FC<SearchableRecipientInputProps> = ({
 
   useEffect(() => {
     setSelectedUserId(value);
+    // If we have a value, find the user and set the search term
     if (value) {
       const user = users.find(u => u.user_id === value);
       if (user) {
@@ -188,6 +201,7 @@ const SearchableRecipientInput: React.FC<SearchableRecipientInputProps> = ({
     }
   }, [value, users]);
 
+  // Search users when user types
   useEffect(() => {
     if (debouncedSearchTerm && debouncedSearchTerm.length >= 2) {
       setIsSearching(true);
@@ -201,12 +215,14 @@ const SearchableRecipientInput: React.FC<SearchableRecipientInputProps> = ({
     } else {
       setIsSearching(false);
     }
-  }, [debouncedSearchTerm]); // Remove dispatch from dependencies
+  }, [debouncedSearchTerm, dispatch]);
 
   const filteredUsers = users.filter(user =>
     user.full_name.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
     user.username.toLowerCase().includes(debouncedSearchTerm)
   );
+
+  const selectedUser = users.find(u => u.user_id === selectedUserId);
 
   const handleUserSelect = (user: UserType) => {
     setSelectedUserId(user.user_id);
@@ -216,66 +232,74 @@ const SearchableRecipientInput: React.FC<SearchableRecipientInputProps> = ({
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = e.target.value;
-    setSearchTerm(newValue);
-    
-    if (selectedUserId && newValue !== users.find(u => u.user_id === selectedUserId)?.full_name) {
+    setSearchTerm(e.target.value);
+    setShowResults(true);
+    if (!e.target.value) {
       setSelectedUserId(null);
       onChange(null);
     }
   };
 
   const handleInputFocus = () => {
-    if (searchTerm.length >= 2 && !selectedUserId) {
+    if (searchTerm) {
       setShowResults(true);
     }
   };
 
   const handleInputBlur = () => {
+    // Delay hiding results to allow clicking on them
     setTimeout(() => setShowResults(false), 200);
   };
 
   return (
     <div className="relative">
       <Input
-        placeholder={placeholder}
         value={searchTerm}
         onChange={handleInputChange}
         onFocus={handleInputFocus}
         onBlur={handleInputBlur}
-        className="pr-10"
+        placeholder={placeholder}
         disabled={disabled}
+        className="w-full"
       />
-      <User className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
       
       {showResults && (
-        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-auto">
-          {isSearching ? (
-            <div className="p-3 text-center text-sm text-muted-foreground">
-              جاري البحث...
-            </div>
-          ) : filteredUsers.length > 0 ? (
-            filteredUsers.map((user) => (
-              <div
-                key={user.user_id}
-                className="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
-                onClick={() => handleUserSelect(user)}
-              >
-                <div className="flex items-center space-x-2 space-x-reverse">
-                  <User className="w-4 h-4 text-muted-foreground" />
-                  <div>
-                    <div className="font-medium">{user.full_name}</div>
-                    <div className="text-sm text-muted-foreground">@{user.username}</div>
-                  </div>
-                </div>
+        <>
+          {isSearching && (
+            <div className="absolute top-full left-0 right-0 z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg p-4">
+              <div className="flex items-center justify-center space-x-2 space-x-reverse">
+                <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                <span className="text-sm text-muted-foreground">جاري البحث...</span>
               </div>
-            ))
-          ) : (
-            <div className="p-3 text-center text-sm text-muted-foreground">
-              لا توجد نتائج
             </div>
           )}
-        </div>
+          
+          {!isSearching && (
+            <div className="absolute top-full left-0 right-0 z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg max-h-60 overflow-auto">
+              {filteredUsers.length > 0 ? (
+                filteredUsers.map((user) => (
+                  <div
+                    key={user.user_id}
+                    className="p-3 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer border-b border-gray-100 dark:border-gray-600 last:border-b-0"
+                    onClick={() => handleUserSelect(user)}
+                  >
+                    <div className="flex items-center space-x-2 space-x-reverse">
+                      <User className="w-4 h-4 text-muted-foreground" />
+                      <div>
+                        <div className="font-medium">{user.full_name}</div>
+                        <div className="text-sm text-muted-foreground">@{user.username}</div>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="p-3 text-center text-sm text-muted-foreground">
+                  لا توجد نتائج
+                </div>
+              )}
+            </div>
+          )}
+        </>
       )}
     </div>
   );
@@ -306,12 +330,14 @@ export const EditMedicalRecordPage: React.FC = () => {
     transfer_notes: ''
   });
 
+  // Load medical record when component mounts
   useEffect(() => {
     if (recordId) {
       dispatch(getMedicalRecordAsync(parseInt(recordId)));
     }
   }, [recordId, dispatch]);
 
+  // Initialize form data when current record is loaded
   useEffect(() => {
     if (currentRecord) {
       setRecord(currentRecord);
@@ -335,22 +361,19 @@ export const EditMedicalRecordPage: React.FC = () => {
     }
   }, [currentRecord]);
 
-  useEffect(() => {
-    // Load initial data only once when component mounts
-    if (patients.length === 0) {
-      dispatch(getPatientsAsync({ page: 1, perPage: 100 }));
-    }
-    if (users.length === 0) {
-      dispatch(getUsersAsync({ page: 1, perPage: 100 }));
-    }
-  }, []); // Empty dependency array - only run once on mount
+  // Get static data options
+  const problemTypeOptions = staticData?.problem_type || [];
+  const dangerLevelOptions = staticData?.danger_level || [];
+  const statusOptions = staticData?.status || [];
+  const userOptions = users || [];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Clear any previous field errors
     dispatch(clearFieldErrors());
     
-    // Form validation
+    // Form validation - all required fields
     if (!formData.patient_id) {
       toast({
         title: "خطأ في البيانات",
@@ -409,6 +432,7 @@ export const EditMedicalRecordPage: React.FC = () => {
         description: "تم تحديث بيانات السجل الطبي",
       });
       
+      // Navigate back to medical records list
       navigate('/admin/medical-records');
       
     } catch (error) {
@@ -426,7 +450,9 @@ export const EditMedicalRecordPage: React.FC = () => {
     navigate('/admin/medical-records');
   };
 
-  if (loading || patientsLoading || usersLoading) {
+  const isLoading = patientsLoading || usersLoading;
+
+  if (loading) {
     return (
       <div className="max-w-7xl mx-auto">
         <div className="flex items-center justify-center min-h-[400px]">
@@ -454,8 +480,6 @@ export const EditMedicalRecordPage: React.FC = () => {
       </div>
     );
   }
-
-  const isLoading = patientsLoading || usersLoading;
 
   return (
     <div className="max-w-7xl mx-auto">
@@ -565,7 +589,7 @@ export const EditMedicalRecordPage: React.FC = () => {
                         <SelectValue placeholder="اختر نوع المشكلة" />
                       </SelectTrigger>
                       <SelectContent>
-                        {staticData?.problem_type?.map((problemType) => (
+                        {problemTypeOptions.map((problemType) => (
                           <SelectItem key={problemType.code} value={problemType.code}>
                             {problemType.label_ar}
                           </SelectItem>
@@ -584,7 +608,7 @@ export const EditMedicalRecordPage: React.FC = () => {
                         <SelectValue placeholder="اختر مستوى الخطر" />
                       </SelectTrigger>
                       <SelectContent>
-                        {staticData?.danger_level?.map((dangerLevel) => (
+                        {dangerLevelOptions.map((dangerLevel) => (
                           <SelectItem key={dangerLevel.code} value={dangerLevel.code}>
                             {dangerLevel.label_ar}
                           </SelectItem>
@@ -603,7 +627,7 @@ export const EditMedicalRecordPage: React.FC = () => {
                         <SelectValue placeholder="اختر الحالة" />
                       </SelectTrigger>
                       <SelectContent>
-                        {staticData?.status?.map((status) => (
+                        {statusOptions.map((status) => (
                           <SelectItem key={status.code} value={status.code}>
                             {status.label_ar}
                           </SelectItem>
@@ -646,22 +670,22 @@ export const EditMedicalRecordPage: React.FC = () => {
 
                   <div className="space-y-2">
                     <Label htmlFor="transfer_status_code">حالة التحويل</Label>
-                                         <Select 
-                       value={formData.transfer_status_code || 'none'} 
-                       onValueChange={(value) => setFormData({ ...formData, transfer_status_code: value === 'none' ? null : value })}
-                     >
-                       <SelectTrigger>
-                         <SelectValue placeholder="اختر حالة التحويل" />
-                       </SelectTrigger>
-                       <SelectContent>
-                         <SelectItem value="none">بدون حالة</SelectItem>
-                         {staticData?.status?.map((status) => (
-                           <SelectItem key={status.code} value={status.code}>
-                             {status.label_ar}
-                           </SelectItem>
-                         ))}
-                       </SelectContent>
-                     </Select>
+                    <Select 
+                      value={formData.transfer_status_code || 'none'} 
+                      onValueChange={(value) => setFormData({ ...formData, transfer_status_code: value === 'none' ? null : value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="اختر حالة التحويل" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">بدون حالة</SelectItem>
+                        {statusOptions.map((status) => (
+                          <SelectItem key={status.code} value={status.code}>
+                            {status.label_ar}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
 
@@ -672,7 +696,7 @@ export const EditMedicalRecordPage: React.FC = () => {
                     value={formData.transfer_notes || ''}
                     onChange={(e) => setFormData({ ...formData, transfer_notes: e.target.value })}
                     placeholder="ملاحظات إضافية حول التحويل..."
-                    rows={3}
+                    rows={8}
                   />
                 </div>
               </div>

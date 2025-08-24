@@ -675,7 +675,7 @@ export const PatientsPage: React.FC = () => {
   });
 
   useEffect(() => {
-    dispatch(getPatientsAsync({ page: 1, perPage: 15 }));
+    dispatch(getPatientsAsync({ page: 1, perPage: 100 }));
   }, [dispatch]);
 
   // Get genders and health centers for filter dropdown

@@ -67,7 +67,7 @@ const initialState: MedicalRecordState = {
   fieldErrors: {},
   pagination: {
     currentPage: 1,
-    perPage: 15,
+    perPage: 100,
     total: 0,
     lastPage: 1,
   },
@@ -370,7 +370,7 @@ export const medicalRecordSlice = createSlice({
       state.fieldErrors = {};
       state.pagination = {
         currentPage: 1,
-        perPage: 15,
+        perPage: 100,
         total: 0,
         lastPage: 1,
       };

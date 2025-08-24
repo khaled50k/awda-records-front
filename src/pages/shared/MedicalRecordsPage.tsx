@@ -1004,7 +1004,7 @@ export const MedicalRecordsPage: React.FC<MedicalRecordsPageProps> = ({ userRole
   useEffect(() => {
     console.log('🚀 Initial data loading...');
     console.log('📊 Initial pagination state:', pagination);
-    dispatch(getMedicalRecordsAsync({ page: 1, perPage: 15 }));
+    dispatch(getMedicalRecordsAsync({ page: 1, perPage: 100 }));
     dispatch(getPatientsAsync({ page: 1, perPage: 100 })); // Fetch all patients for the select
     dispatch(getUsersAsync({ page: 1, perPage: 100 })); // Fetch all users for the recipient search
   }, [dispatch]);
@@ -1231,20 +1231,8 @@ export const MedicalRecordsPage: React.FC<MedicalRecordsPageProps> = ({ userRole
             </Button>
           )}
           
-          {isAdmin && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                setEditingStatusRecord(record);
-                setIsEditStatusOpen(true);
-              }}
-              className="text-orange-600 hover:text-orange-700 hover:bg-orange-50"
-              title="تعديل الحالة"
-            >
-              <Send className="w-4 h-4" />
-            </Button>
-          )}
+          
+    
         </div>
       ),
     },
@@ -1591,13 +1579,6 @@ export const MedicalRecordsPage: React.FC<MedicalRecordsPageProps> = ({ userRole
       {/* Data Table */}
       <Card>
         <CardContent className="p-0">
-          {/* Debug pagination info */}
-          {process.env.NODE_ENV === 'development' && (
-            <div className="p-4 bg-gray-50 border-b text-xs text-gray-600">
-              <strong>Debug Pagination:</strong> Current: {pagination.currentPage}, Last: {pagination.lastPage}, PerPage: {pagination.perPage}, Total: {pagination.total}
-            </div>
-          )}
-          
           <EnhancedDataTable
             data={medicalRecords}
             columns={columns}
@@ -1631,19 +1612,6 @@ export const MedicalRecordsPage: React.FC<MedicalRecordsPageProps> = ({ userRole
             exportEnabled={true}
             onExport={(format) => handleExport()}
           />
-          
-          {/* Debug pagination props */}
-          {process.env.NODE_ENV === 'development' && (
-            <div className="p-4 bg-yellow-50 border border-yellow-200 text-xs text-yellow-800">
-              <strong>Debug EnhancedDataTable Props:</strong><br/>
-              Pagination: {JSON.stringify({
-                current_page: pagination.currentPage,
-                last_page: pagination.lastPage,
-                per_page: pagination.perPage,
-                total: pagination.total
-              })}
-            </div>
-          )}
         </CardContent>
       </Card>
 

@@ -430,7 +430,7 @@ export const AdminUsersPage: React.FC = () => {
   });
 
   useEffect(() => {
-    dispatch(getUsersAsync({ page: 1, perPage: 15 }));
+    dispatch(getUsersAsync({ page: 1, perPage: 100 }));
   }, [dispatch]);
 
   const handleCreateUser = async (data: {
