@@ -19,19 +19,18 @@ export const reportService = {
   // Generate report (downloadable file)
   generateReport: async (request: GenerateReportRequest): Promise<Blob> => {
     try {
-      const response = await api.post<Blob>(
+      // Use the same helper as getAvailableReports, but ask axios for a blob
+      const blob = (await apiService.post<Blob>(
         '/reports/generate',
         request,
         {
+          // @ts-expect-error axios responseType for blob
           responseType: 'blob',
-          headers: {
-            Accept: 'application/octet-stream',
-          },
+          headers: { Accept: 'application/octet-stream' },
         }
-      );
+      )) as unknown as Blob;
 
-      // Axios with responseType 'blob' returns the blob in response.data
-      return response.data as unknown as Blob;
+      return blob;
     } catch (error) {
       console.error('Error generating report:', error);
       throw error;
