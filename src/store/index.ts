@@ -7,6 +7,7 @@ import usersReducer from './slices/userSlice';
 import patientsReducer from './slices/patientSlice';
 import medicalRecordsReducer from './slices/medicalRecordSlice';
 import transfersReducer from './slices/transferSlice';
+import reportsReducer from './slices/reportSlice';
 
 export const store = configureStore({
   reducer: {
@@ -15,6 +16,7 @@ export const store = configureStore({
     patients: patientsReducer,
     medicalRecords: medicalRecordsReducer,
     transfers: transfersReducer,
+    reports: reportsReducer,
     
     staticData: staticDataReducer,
     ui: uiReducer,

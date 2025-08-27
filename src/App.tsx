@@ -26,6 +26,7 @@ import { TransferRecordPage } from './pages/shared/TransferRecordPage';
 import { AdminDashboardPage } from './pages/admin/AdminDashboardPage';
 import { AdminUsersPage } from './pages/admin/AdminUsersPage';
 import { AdminStaticDataPage } from './pages/admin/AdminStaticDataPage';
+import { AdminReportsPage } from './pages/admin/AdminReportsPage';
 
 // Import employee-specific pages
 import { EmployeeDashboardPage } from './pages/employee/EmployeeDashboardPage';
@@ -77,6 +78,7 @@ const AppContent: React.FC = () => {
               <Route path="dashboard" element={<AdminDashboardPage />} />
               <Route path="users" element={<AdminUsersPage />} />
               <Route path="static-data" element={<AdminStaticDataPage />} />
+              <Route path="reports" element={<AdminReportsPage />} />
               <Route path="patients" element={<PatientsPage />} />
               <Route path="patients/:patientId" element={<ViewPatientPage />} />
               <Route path="medical-records" element={<MedicalRecordsPage userRole="admin" />} />

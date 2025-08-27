@@ -417,3 +417,36 @@ export interface AdminChangePasswordRequest {
   new_password: string;
   confirm_password: string;
 }
+
+// Reports Types
+export interface ReportFilter {
+  from_date?: string;
+  to_date?: string;
+  health_center_code?: string;
+  problem_type_code?: string;
+}
+
+export interface Report {
+  type: string;
+  name: string;
+  description: string;
+  supported_formats: string[];
+  filters: Record<string, string>;
+}
+
+export interface ReportFormats {
+  csv: string;
+  excel: string;
+  pdf: string;
+}
+
+export interface AvailableReportsResponse {
+  reports: Report[];
+  formats: ReportFormats;
+}
+
+export interface GenerateReportRequest {
+  report_type: string;
+  format: string;
+  filters: ReportFilter;
+}
