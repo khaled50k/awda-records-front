@@ -21,7 +21,9 @@ const api: AxiosInstance = axios.create({
   // Request interceptor to add auth token
   api.interceptors.request.use(
     (config: InternalAxiosRequestConfig) => {
-      const token = Cookies.get('auth_token');
+      const cookieToken = Cookies.get('auth_token');
+      const localStorageToken = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+      const token = cookieToken || localStorageToken;
       if (token && config.headers) {
         config.headers.Authorization = `Bearer ${token}`;
       }

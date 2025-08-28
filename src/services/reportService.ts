@@ -1,17 +1,14 @@
-import api, { apiService } from './api';
-import { 
-  AvailableReportsResponse, 
-  GenerateReportRequest, 
-} from '../types/api';
+import api, { apiService } from "./api";
+import { AvailableReportsResponse, GenerateReportRequest } from "../types/api";
 
 export const reportService = {
   // Get available reports
   getAvailableReports: async (): Promise<AvailableReportsResponse> => {
     try {
-      const response = await apiService.get<AvailableReportsResponse>('/reports/available');
+      const response = await apiService.get<AvailableReportsResponse>("/reports/available");
       return response.data;
     } catch (error) {
-      console.error('Error fetching available reports:', error);
+      console.error("Error fetching available reports:", error);
       throw error;
     }
   },
@@ -19,20 +16,21 @@ export const reportService = {
   // Generate report (downloadable file)
   generateReport: async (request: GenerateReportRequest): Promise<Blob> => {
     try {
-      // Use the same helper as getAvailableReports, but ask axios for a blob
-      const blob = (await apiService.post<Blob>(
-        '/reports/generate',
+      // Use raw axios instance for binary responses
+      const response = await api.post(
+        "/reports/generate",
         request,
         {
-          // @ts-expect-error axios responseType for blob
-          responseType: 'blob',
-          headers: { Accept: 'application/octet-stream' },
+          responseType: "blob",
+          headers: {
+            Accept: "application/octet-stream",
+          },
         }
-      )) as unknown as Blob;
+      );
 
-      return blob;
+      return response.data as Blob;
     } catch (error) {
-      console.error('Error generating report:', error);
+      console.error("Error generating report:", error);
       throw error;
     }
   },
@@ -40,7 +38,7 @@ export const reportService = {
   // Download file helper
   downloadFile: (blob: Blob, filename: string): void => {
     const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
+    const link = document.createElement("a");
     link.href = url;
     link.download = filename;
     document.body.appendChild(link);
