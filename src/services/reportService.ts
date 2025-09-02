@@ -1,17 +1,14 @@
-import api, { apiService } from './api';
-import { 
-  AvailableReportsResponse, 
-  GenerateReportRequest, 
-} from '../types/api';
+import api, { apiService } from "./api";
+import { AvailableReportsResponse, GenerateReportRequest } from "../types/api";
 
 export const reportService = {
   // Get available reports
   getAvailableReports: async (): Promise<AvailableReportsResponse> => {
     try {
-      const response = await apiService.get<AvailableReportsResponse>('/reports/available');
+      const response = await apiService.get<AvailableReportsResponse>("/reports/available");
       return response.data;
     } catch (error) {
-      console.error('Error fetching available reports:', error);
+      console.error("Error fetching available reports:", error);
       throw error;
     }
   },
@@ -19,6 +16,7 @@ export const reportService = {
   // Generate report (returns file URL or blob)
   generateReport: async (request: GenerateReportRequest): Promise<any> => {
     try {
+<<<<<<< HEAD
       // First try to get JSON response with file_url
       const response = await apiService.post<any>(
         '/reports/generate',
@@ -36,17 +34,23 @@ export const reportService = {
       // Fallback to blob download (old format)
       const blob = (await apiService.post<Blob>(
         '/reports/generate',
+=======
+      // Use raw axios instance for binary responses
+      const response = await api.post(
+        "/reports/generate",
+>>>>>>> 00659c4910ff6616b7169043c693ec5c2c4794b4
         request,
         {
-          // @ts-expect-error axios responseType for blob
-          responseType: 'blob',
-          headers: { Accept: 'application/octet-stream' },
+          responseType: "blob",
+          headers: {
+            Accept: "application/octet-stream",
+          },
         }
-      )) as unknown as Blob;
+      );
 
-      return blob;
+      return response.data as Blob;
     } catch (error) {
-      console.error('Error generating report:', error);
+      console.error("Error generating report:", error);
       throw error;
     }
   },
@@ -54,7 +58,7 @@ export const reportService = {
   // Download file helper
   downloadFile: (blob: Blob, filename: string): void => {
     const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
+    const link = document.createElement("a");
     link.href = url;
     link.download = filename;
     document.body.appendChild(link);
