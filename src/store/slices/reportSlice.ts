@@ -62,8 +62,19 @@ export const generateReport = createAsyncThunk(
   'reports/generateReport',
   async (request: GenerateReportRequest, { rejectWithValue }) => {
     try {
-      const blob = await reportService.generateReport(request);
-      return { blob, filename: `${request.report_type}_${new Date().toISOString().split('T')[0]}.${request.format}` };
+      const result = await reportService.generateReport(request);
+      
+      // Check if result contains file_url (new format)
+      if (result && typeof result === 'object' && result.file_url) {
+        return { 
+          file_url: result.file_url, 
+          filename: result.filename || `${request.report_type}_${new Date().toISOString().split('T')[0]}.${request.format}`,
+          message: result.message
+        };
+      }
+      
+      // Handle blob format (old format)
+      return { blob: result, filename: `${request.report_type}_${new Date().toISOString().split('T')[0]}.${request.format}` };
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : 'فشل في إنشاء التقرير');
     }
@@ -134,8 +145,15 @@ const reportSlice = createSlice({
       })
       .addCase(generateReport.fulfilled, (state, action) => {
         state.generating = false;
-        // Download the file
-        reportService.downloadFile(action.payload.blob, action.payload.filename);
+        
+        // Handle new format with file_url
+        if (action.payload.file_url) {
+          // Open the file URL in a new tab
+          reportService.openFileUrl(action.payload.file_url);
+        } else if (action.payload.blob) {
+          // Handle old blob format
+          reportService.downloadFile(action.payload.blob, action.payload.filename);
+        }
       })
       .addCase(generateReport.rejected, (state, action) => {
         state.generating = false;

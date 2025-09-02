@@ -16,10 +16,24 @@ export const reportService = {
     }
   },
 
-  // Generate report (downloadable file)
-  generateReport: async (request: GenerateReportRequest): Promise<Blob> => {
+  // Generate report (returns file URL or blob)
+  generateReport: async (request: GenerateReportRequest): Promise<any> => {
     try {
-      // Use the same helper as getAvailableReports, but ask axios for a blob
+      // First try to get JSON response with file_url
+      const response = await apiService.post<any>(
+        '/reports/generate',
+        request,
+        {
+          headers: { Accept: 'application/json' },
+        }
+      );
+
+      // Check if response contains file_url (new format)
+      if (response.data && response.data.file_url) {
+        return response.data;
+      }
+
+      // Fallback to blob download (old format)
       const blob = (await apiService.post<Blob>(
         '/reports/generate',
         request,
@@ -47,5 +61,17 @@ export const reportService = {
     link.click();
     document.body.removeChild(link);
     window.URL.revokeObjectURL(url);
+  },
+
+  // Open file URL in new window
+  openFileUrl: (fileUrl: string): void => {
+    try {
+      // Clean the file URL by removing extra spaces and backticks
+      const cleanUrl = fileUrl.trim().replace(/`/g, '');
+      window.open(cleanUrl, '_blank');
+    } catch (error) {
+      console.error('Error opening file URL:', error);
+      throw new Error('فشل في فتح رابط الملف');
+    }
   },
 };

@@ -1427,56 +1427,45 @@ export const MedicalRecordsPage: React.FC<MedicalRecordsPageProps> = ({ userRole
   // Handle export functionality
   const handleExport = async () => {
     try {
-      console.log('🚀 Starting export process...');
-      console.log('🔍 Redux filters state:', filters);
-      console.log('🔍 Local currentFilters state:', currentFilters);
-      
       // Determine date range from filters or use current date
       let fromDate: string;
       let toDate: string;
 
-      // Check if we have any date filters set
       if (currentFilters.createdFrom || currentFilters.createdTo) {
-        // Use whatever date filters are available
         fromDate = typeof currentFilters.createdFrom === 'string' ? currentFilters.createdFrom : format(new Date(), 'yyyy-MM-dd');
         toDate = typeof currentFilters.createdTo === 'string' ? currentFilters.createdTo : 
                 (typeof currentFilters.createdFrom === 'string' ? currentFilters.createdFrom : format(new Date(), 'yyyy-MM-dd'));
-        
-        console.log('✅ Using available date filters:', {
-          createdFrom: currentFilters.createdFrom,
-          createdTo: currentFilters.createdTo,
-          finalFromDate: fromDate,
-          finalToDate: toDate
-        });
       } else {
-        // Fall back to current date if no filters set
         const today = new Date();
         fromDate = format(today, 'yyyy-MM-dd');
         toDate = format(today, 'yyyy-MM-dd');
-        console.log('📅 Using current date as fallback:', fromDate);
       }
 
-      // Show loading toast
       toast({
         title: "جاري التصدير...",
         description: `جاري إعداد التقرير من ${fromDate} إلى ${toDate}`,
       });
 
-      // Call the backend API to get daily transfers report
-      console.log('📡 Calling API with dates:', { from_date: fromDate, to_date: toDate });
-      
       const result = await dispatch(getDailyTransfersReportAsync({
         from_date: fromDate,
         to_date: toDate
       })).unwrap();
 
-      console.log('📊 API Response received:', result);
-
-      // API now returns CSV string directly
-      if (typeof result === 'string' && result.trim() !== '') {
-        console.log('✅ CSV response received, length:', result.length);
+      // Check if API returns file URL (new format) - result is the data directly
+      if (result && typeof result === 'object' && result.file_url) {
+        // Clean the file URL by removing extra spaces and backticks
+        const cleanFileUrl = result.file_url.trim().replace(/`/g, '');
         
-        // Create and download the CSV file
+        // Open the file URL in a new tab
+        downloadFileFromUrl(cleanFileUrl, result.filename || `daily_transfers_report_${fromDate}_to_${toDate}.xlsx`);
+        
+        toast({
+          title: "تم التصدير بنجاح",
+          description: result.message || "تم تصدير التقرير بنجاح",
+        });
+      }
+      // Fallback: API returns CSV string directly (old format)
+      else if (typeof result === 'string' && result.trim() !== '') {
         downloadCSV(result, fromDate, toDate);
         
         toast({
@@ -1484,17 +1473,15 @@ export const MedicalRecordsPage: React.FC<MedicalRecordsPageProps> = ({ userRole
           description: "تم تصدير التقرير بنجاح",
         });
       } else {
-        console.warn('⚠️ No CSV data received:', result);
-        
         toast({
           title: "لا توجد بيانات",
-          description: "لم يتم العثور على بيانات CSV للتصدير في التاريخ المحدد",
+          description: "لم يتم العثور على بيانات للتصدير في التاريخ المحدد",
           variant: "destructive",
         });
       }
 
     } catch (error) {
-      console.error('❌ Export error:', error);
+      console.error('Export error:', error);
       toast({
         title: "خطأ في التصدير",
         description: "حدث خطأ أثناء تصدير التقرير",
@@ -1505,7 +1492,21 @@ export const MedicalRecordsPage: React.FC<MedicalRecordsPageProps> = ({ userRole
 
 
 
-  // Download CSV file
+  // Open file URL in new tab
+  const downloadFileFromUrl = (fileUrl: string, filename: string) => {
+    try {
+      window.open(fileUrl, '_blank');
+    } catch (error) {
+      console.error('Failed to open file:', error);
+      toast({
+        title: "خطأ في فتح الملف",
+        description: "حدث خطأ أثناء فتح الملف",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Download CSV file (fallback for old API format)
   const downloadCSV = (csvContent: string, fromDate: string, toDate: string) => {
     // Add BOM for Arabic text support
     const BOM = '\uFEFF';
