@@ -13,7 +13,7 @@ import { Label } from '../../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { Textarea } from '../../components/ui/textarea';
 import { Badge } from '../../components/ui/badge';
-import { ArrowLeft, Save, User, Hash, Building2, AlertTriangle, FileText, Send } from 'lucide-react';
+import { ArrowLeft, Save, User, Hash, Building2, AlertTriangle, FileText, Send, X, Users } from 'lucide-react';
 import { Patient, User as UserType, StaticData, CreateMedicalRecordRequest } from '../../types/api';
 import { toast } from '../../hooks/use-toast';
 import { useDebounce } from 'use-debounce';
@@ -192,40 +192,28 @@ const SearchablePatientInput: React.FC<SearchablePatientInputProps> = ({
   );
 };
 
-// Searchable recipient input component
-interface SearchableRecipientInputProps {
-  value: number | null;
-  onChange: (value: number | null) => void;
+// Multi-select recipient input component
+interface MultiSelectRecipientInputProps {
+  value: number[];
+  onChange: (value: number[]) => void;
   placeholder?: string;
   users: UserType[];
   disabled?: boolean;
 }
 
-const SearchableRecipientInput: React.FC<SearchableRecipientInputProps> = ({
+const MultiSelectRecipientInput: React.FC<MultiSelectRecipientInputProps> = ({
   value,
   onChange,
-  placeholder = "البحث عن المستلم...",
+  placeholder = "البحث عن المستلمين...",
   users,
   disabled = false
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showResults, setShowResults] = useState(false);
-  const [selectedUserId, setSelectedUserId] = useState<number | null>(value);
   const [isSearching, setIsSearching] = useState(false);
   const dispatch = useAppDispatch();
 
   const [debouncedSearchTerm] = useDebounce(searchTerm, 500);
-
-  useEffect(() => {
-    setSelectedUserId(value);
-    // If we have a value, find the user and set the search term
-    if (value) {
-      const user = users.find(u => u.user_id === value);
-      if (user) {
-        setSearchTerm(user.full_name);
-      }
-    }
-  }, [value, users]);
 
   // Search users when user types
   useEffect(() => {
@@ -244,32 +232,33 @@ const SearchableRecipientInput: React.FC<SearchableRecipientInputProps> = ({
   }, [debouncedSearchTerm, dispatch]);
 
   const filteredUsers = users.filter(user =>
-    user.full_name.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
-    user.username.toLowerCase().includes(debouncedSearchTerm.toLowerCase())
+    !value.includes(user.user_id) && (
+      user.full_name.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+      user.username.toLowerCase().includes(debouncedSearchTerm.toLowerCase())
+    )
   );
 
-  const selectedUser = users.find(u => u.user_id === selectedUserId);
+  const selectedUsers = users.filter(user => value.includes(user.user_id));
 
   const handleUserSelect = (user: UserType) => {
-    setSelectedUserId(user.user_id);
-    onChange(user.user_id);
-    setSearchTerm(user.full_name);
+    if (!value.includes(user.user_id)) {
+      onChange([...value, user.user_id]);
+    }
+    setSearchTerm('');
     setShowResults(false);
+  };
+
+  const handleUserRemove = (userId: number) => {
+    onChange(value.filter(id => id !== userId));
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
     setShowResults(true);
-    if (!e.target.value) {
-      setSelectedUserId(null);
-      onChange(null);
-    }
   };
 
   const handleInputFocus = () => {
-    if (searchTerm) {
-      setShowResults(true);
-    }
+    setShowResults(true);
   };
 
   const handleInputBlur = () => {
@@ -277,59 +266,90 @@ const SearchableRecipientInput: React.FC<SearchableRecipientInputProps> = ({
   };
 
   return (
-    <div className="relative">
-      <Input
-        value={searchTerm}
-        onChange={handleInputChange}
-        onFocus={handleInputFocus}
-        onBlur={handleInputBlur}
-        placeholder={placeholder}
-        disabled={disabled}
-        className="w-full"
-      />
-      
-      {showResults && (
-        <>
-          {isSearching && (
-            <div className="absolute top-full left-0 right-0 z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg p-4">
-              <div className="flex items-center justify-center space-x-2 space-x-reverse">
-                <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-                <span className="text-sm text-muted-foreground">جاري البحث...</span>
-              </div>
-            </div>
-          )}
-          {!isSearching && filteredUsers.length > 0 && (
-            <div className="absolute top-full left-0 right-0 z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg max-h-60 overflow-y-auto">
-              {filteredUsers.map((user) => (
-                <div
-                  key={user.user_id}
-                  className="p-3 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer border-b border-gray-100 dark:border-gray-600 last:border-b-0"
-                  onClick={() => handleUserSelect(user)}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3 space-x-reverse">
-                      <User className="w-4 h-4 text-muted-foreground" />
-                      <span className="font-medium">{user.full_name}</span>
-                    </div>
-                    <Badge variant="outline" className="text-xs">
-                      {user.username}
-                    </Badge>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </>
+    <div className="space-y-3">
+      {/* Selected Recipients */}
+      {selectedUsers.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {selectedUsers.map((user) => (
+            <Badge
+              key={user.user_id}
+              variant="secondary"
+              className="flex items-center space-x-2 space-x-reverse px-3 py-1 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-200"
+            >
+              <User className="w-3 h-3" />
+              <span>{user.full_name}</span>
+              <button
+                type="button"
+                onClick={() => handleUserRemove(user.user_id)}
+                className="ml-1 hover:bg-blue-200 dark:hover:bg-blue-800 rounded-full p-0.5 transition-colors"
+                disabled={disabled}
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </Badge>
+          ))}
+        </div>
       )}
-      
-      {selectedUser && (
-        <div className="mt-2 p-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md">
-          <div className="flex items-center space-x-2 space-x-reverse">
-            <User className="w-4 h-4 text-blue-600" />
-            <span className="text-sm font-medium text-blue-800 dark:text-blue-200">
-              تم اختيار: {selectedUser.full_name} ({selectedUser.username})
-            </span>
-          </div>
+
+      {/* Search Input */}
+      <div className="relative">
+        <Input
+          value={searchTerm}
+          onChange={handleInputChange}
+          onFocus={handleInputFocus}
+          onBlur={handleInputBlur}
+          placeholder={placeholder}
+          disabled={disabled}
+          className="w-full"
+        />
+        
+        {showResults && (
+          <>
+            {isSearching && (
+              <div className="absolute top-full left-0 right-0 z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg p-4">
+                <div className="flex items-center justify-center space-x-2 space-x-reverse">
+                  <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                  <span className="text-sm text-muted-foreground">جاري البحث...</span>
+                </div>
+              </div>
+            )}
+            {!isSearching && filteredUsers.length > 0 && (
+              <div className="absolute top-full left-0 right-0 z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                {filteredUsers.map((user) => (
+                  <div
+                    key={user.user_id}
+                    className="p-3 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer border-b border-gray-100 dark:border-gray-600 last:border-b-0"
+                    onClick={() => handleUserSelect(user)}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3 space-x-reverse">
+                        <User className="w-4 h-4 text-muted-foreground" />
+                        <span className="font-medium">{user.full_name}</span>
+                      </div>
+                      <Badge variant="outline" className="text-xs">
+                        {user.username}
+                      </Badge>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            {!isSearching && filteredUsers.length === 0 && searchTerm && (
+              <div className="absolute top-full left-0 right-0 z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg p-4">
+                <div className="text-center text-sm text-muted-foreground">
+                  لا توجد نتائج للبحث
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
+      {/* Summary */}
+      {selectedUsers.length > 0 && (
+        <div className="flex items-center space-x-2 space-x-reverse text-sm text-muted-foreground">
+          <Users className="w-4 h-4" />
+          <span>تم اختيار {selectedUsers.length} مستلم</span>
         </div>
       )}
     </div>
@@ -355,7 +375,7 @@ export const CreateMedicalRecordPage: React.FC = () => {
     danger_level_code: '',
     reviewed_party: '',
     status_code: '',
-    recipient_id: undefined,
+    recipient_ids: [],
     transfer_notes: ''
   });
 
@@ -556,22 +576,29 @@ export const CreateMedicalRecordPage: React.FC = () => {
                   )}
               </div>
 
-                                            {/* Recipient Selection - Only for Admin */}
+                                            {/* Recipients Selection - Only for Admin */}
                  {isAdmin && (
               <div className="space-y-3">
-                <Label htmlFor="recipient_id" className="text-base font-semibold text-gray-700 dark:text-gray-300">
-                     المستلم (اختياري)
+                <Label htmlFor="recipient_ids" className="text-base font-semibold text-gray-700 dark:text-gray-300">
+                     المستلمون (اختياري)
                 </Label>
-                <SearchableRecipientInput
-                  value={formData.recipient_id || null}
-                     onChange={(value) => setFormData({ ...formData, recipient_id: value || undefined })}
-                  placeholder="البحث عن المستلم..."
+                <MultiSelectRecipientInput
+                  value={formData.recipient_ids || []}
+                     onChange={(value) => setFormData({ ...formData, recipient_ids: value })}
+                  placeholder="البحث عن المستلمين..."
                   users={users}
                   disabled={false}
                 />
+                {fieldErrors.recipient_ids && (
+                  <div className="text-red-500 text-sm mt-1">
+                    {fieldErrors.recipient_ids.map((error, index) => (
+                      <div key={index}>{error}</div>
+                    ))}
+                  </div>
+                )}
                 <p className="text-sm text-muted-foreground flex items-center space-x-2 space-x-reverse">
-                  <User className="w-4 h-4" />
-                     <span>اختر المستلم الذي سيتم إرسال السجل إليه (اختياري للمدير)</span>
+                  <Users className="w-4 h-4" />
+                     <span>اختر المستلمين الذين سيتم إرسال السجل إليهم (اختياري للمدير)</span>
                 </p>
               </div>
                )}

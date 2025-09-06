@@ -120,7 +120,7 @@ export interface CreateMedicalRecordRequest {
   danger_level_code: string;
   reviewed_party: string;
   status_code: string;
-  recipient_id?: number;
+  recipient_ids?: number[]; // Array of recipient IDs for immediate transfer
   transfer_notes: string;
 }
 
