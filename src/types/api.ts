@@ -201,9 +201,9 @@ export interface DailyTransfersReportRequest {
 
 export interface CreateTransferRequest {
   record_id: number;
-  recipient_id: number;
+  recipient_ids?: number[]; // Array of recipient IDs for transfer
   transfer_notes?: string;
-  status_code: string;
+  transfer_status_code: string;
 }
 
 export interface UpdateTransferRequest {

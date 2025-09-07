@@ -12,7 +12,7 @@ import { Label } from '../../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { Textarea } from '../../components/ui/textarea';
 import { Badge } from '../../components/ui/badge';
-import { ArrowLeft, Send, User, FileText, Search } from 'lucide-react';
+import { ArrowLeft, Send, User, FileText, Search, X, Users } from 'lucide-react';
 import { toast } from '../../hooks/use-toast';
 import { useDebounce } from 'use-debounce';
 import { LoadingSpinner } from '../../components/ui/loading-spinner';
@@ -21,49 +21,38 @@ import { formatDateTime } from '@/utils/dateUtils';
 import { useRoleAccess } from '@/hooks/useRoleAccess';
 
 interface TransferFormData {
-  recipient_id: number | null;
+  recipient_ids: number[];
   transfer_notes: string;
   transfer_status_code: string;
 }
 
-interface SearchableRecipientInputProps {
-  value: number | null;
-  onChange: (value: number | null) => void;
+interface MultiSelectRecipientInputProps {
+  value: number[];
+  onChange: (value: number[]) => void;
   placeholder?: string;
 }
 
-const SearchableRecipientInput: React.FC<SearchableRecipientInputProps> = ({
+const MultiSelectRecipientInput: React.FC<MultiSelectRecipientInputProps> = ({
   value,
   onChange,
-  placeholder = "البحث عن المستلم..."
+  placeholder = "البحث عن المستلمين..."
 }) => {
   const dispatch = useAppDispatch();
   const [searchTerm, setSearchTerm] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [showResults, setShowResults] = useState(false);
-  const [selectedUserId, setSelectedUserId] = useState<number | null>(value);
 
   const [debouncedSearchTerm] = useDebounce(searchTerm, 500);
 
   const { users } = useSelector((state: RootState) => state.users);
 
   useEffect(() => {
-    setSelectedUserId(value);
-    if (value) {
-      const selectedUser = users.find(u => u.user_id === value);
-      if (selectedUser) {
-        setSearchTerm(selectedUser.full_name);
-      }
-    }
-  }, [value, users]);
-
-  useEffect(() => {
-    if (debouncedSearchTerm.length >= 2 && !selectedUserId) {
+    if (debouncedSearchTerm.length >= 2) {
       handleSearch(debouncedSearchTerm);
     } else if (debouncedSearchTerm.length === 0) {
       setShowResults(false);
     }
-  }, [debouncedSearchTerm, selectedUserId]);
+  }, [debouncedSearchTerm]);
 
   const handleSearch = useCallback(async (term: string) => {
     if (isSearching) return;
@@ -80,80 +69,108 @@ const SearchableRecipientInput: React.FC<SearchableRecipientInputProps> = ({
   }, [dispatch, isSearching]);
 
   const filteredUsers = users.filter(user =>
-    user.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.username.toLowerCase().includes(searchTerm.toLowerCase())
+    (user.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.username.toLowerCase().includes(searchTerm.toLowerCase())) &&
+    !value.includes(user.user_id) // Exclude already selected users
   );
 
   const handleSelectUser = useCallback((user: { user_id: number; full_name: string }) => {
-    onChange(user.user_id);
-    setSelectedUserId(user.user_id);
-    setSearchTerm(user.full_name);
+    if (!value.includes(user.user_id)) {
+      onChange([...value, user.user_id]);
+    }
+    setSearchTerm('');
     setShowResults(false);
-  }, [onChange]);
+  }, [onChange, value]);
+
+  const handleRemoveUser = useCallback((userId: number) => {
+    onChange(value.filter(id => id !== userId));
+  }, [onChange, value]);
 
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = e.target.value;
-    setSearchTerm(newValue);
-
-    if (selectedUserId && newValue !== users.find(u => u.user_id === selectedUserId)?.full_name) {
-      setSelectedUserId(null);
-      onChange(null);
-    }
-  }, [selectedUserId, users, onChange]);
+    setSearchTerm(e.target.value);
+  }, []);
 
   const handleInputFocus = useCallback(() => {
-    if (searchTerm.length >= 2 && !selectedUserId) {
+    if (searchTerm.length >= 2) {
       setShowResults(true);
     }
-  }, [searchTerm.length, selectedUserId]);
+  }, [searchTerm.length]);
 
   const handleInputBlur = useCallback(() => {
     setTimeout(() => setShowResults(false), 200);
   }, []);
 
-  return (
-    <div className="relative">
-      <Input
-        placeholder={placeholder}
-        value={searchTerm}
-        onChange={handleInputChange}
-        onFocus={handleInputFocus}
-        onBlur={handleInputBlur}
-        className="pr-10"
-      />
-      <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+  const selectedUsers = users.filter(user => value.includes(user.user_id));
 
-      {showResults && (
-        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-auto">
-          {isSearching ? (
-            <div className="p-3 text-center text-sm text-muted-foreground">
-              جاري البحث...
-            </div>
-          ) : filteredUsers.length > 0 ? (
-            filteredUsers.map((user) => (
-              <div
-                key={user.user_id}
-                className="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
-                onClick={() => handleSelectUser(user)}
+  return (
+    <div className="space-y-3">
+      {/* Selected Recipients */}
+      {selectedUsers.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {selectedUsers.map((user) => (
+            <Badge
+              key={user.user_id}
+              variant="secondary"
+              className="flex items-center gap-2 px-3 py-1 bg-blue-50 text-blue-700 border border-blue-200"
+            >
+              <Users className="w-3 h-3" />
+              <span>{user.full_name}</span>
+              <button
+                type="button"
+                onClick={() => handleRemoveUser(user.user_id)}
+                className="ml-1 hover:bg-blue-200 rounded-full p-0.5 transition-colors"
               >
-                <div className="flex items-center space-x-2 space-x-reverse">
-                  <User className="w-4 h-4 text-muted-foreground" />
-                  <div>
-                    <div className="font-medium">{user.full_name}</div>
-                    <div className="text-sm text-muted-foreground">
-                      {user.username} - {user.role_code}
+                <X className="w-3 h-3" />
+              </button>
+            </Badge>
+          ))}
+        </div>
+      )}
+
+      {/* Search Input */}
+      <div className="relative">
+        <Input
+          placeholder={placeholder}
+          value={searchTerm}
+          onChange={handleInputChange}
+          onFocus={handleInputFocus}
+          onBlur={handleInputBlur}
+          className="pr-10"
+        />
+        <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+
+        {showResults && (
+          <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-auto">
+            {isSearching ? (
+              <div className="p-3 text-center text-sm text-muted-foreground">
+                جاري البحث...
+              </div>
+            ) : filteredUsers.length > 0 ? (
+              filteredUsers.map((user) => (
+                <div
+                  key={user.user_id}
+                  className="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                  onClick={() => handleSelectUser(user)}
+                >
+                  <div className="flex items-center space-x-2 space-x-reverse">
+                    <User className="w-4 h-4 text-muted-foreground" />
+                    <div>
+                      <div className="font-medium">{user.full_name}</div>
+                      <div className="text-sm text-muted-foreground">
+                        {user.username} - {user.role_code}
+                      </div>
                     </div>
                   </div>
                 </div>
+              ))
+            ) : (
+              <div className="p-3 text-center text-sm text-muted-foreground">
+                لا توجد نتائج
               </div>
-            ))
-          ) : (
-            <div className="p-3 text-center text-sm text-muted-foreground">
-              لا توجد نتائج
-            </div>
-          )}
-        </div>
-      )}
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 };
@@ -170,7 +187,7 @@ export const TransferRecordPage: React.FC = () => {
   const [isLoadingRecord, setIsLoadingRecord] = useState(false);
   
   const [formData, setFormData] = useState<TransferFormData>({
-    recipient_id: null,
+    recipient_ids: [],
     transfer_notes: '',
     transfer_status_code: ''
   });
@@ -207,11 +224,11 @@ export const TransferRecordPage: React.FC = () => {
               }));
             }
             
-            // Pre-fill recipient if transfer exists and user is admin
+            // Pre-fill recipients if transfer exists and user is admin
             if (isAdmin && latestTransfer.recipient_id) {
               setFormData(prev => ({
                 ...prev,
-                recipient_id: latestTransfer.recipient_id
+                recipient_ids: [latestTransfer.recipient_id]
               }));
             }
           } else {
@@ -241,11 +258,11 @@ export const TransferRecordPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validation: Check if recipient is selected (for admin users only)
-    if (isAdmin && !formData.recipient_id) {
+    // Validation: Check if recipients are selected (for admin users only)
+    if (isAdmin && formData.recipient_ids.length === 0) {
       toast({
         title: "خطأ في النموذج",
-        description: "يرجى اختيار المستلم",
+        description: "يرجى اختيار المستلمين",
         variant: "destructive",
       });
       return;
@@ -283,7 +300,7 @@ export const TransferRecordPage: React.FC = () => {
 
       await dispatch(createTransferAsync({
         record_id: parseInt(recordId),
-        recipient_id: formData.recipient_id , // Provide default value if null
+        recipient_ids: formData.recipient_ids,
         transfer_notes: formData.transfer_notes,
         transfer_status_code: formData.transfer_status_code
       })).unwrap();
@@ -424,19 +441,19 @@ export const TransferRecordPage: React.FC = () => {
        
 
             <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Recipient Selection */}
+              {/* Recipients Selection */}
             {isAdmin && (
               <div className="space-y-2">
-                <Label htmlFor="recipient_id" className="text-base font-semibold">
-                  المستلم ذو العلاقة<span className="text-red-500">*</span>
+                <Label htmlFor="recipient_ids" className="text-base font-semibold">
+                  المستلمين ذو العلاقة<span className="text-red-500">*</span>
                 </Label>
-                <SearchableRecipientInput
-                  value={formData.recipient_id}
-                  onChange={(value) => setFormData({ ...formData, recipient_id: value })}
-                  placeholder="البحث بالاسم أو اسم المستخدم..."
+                <MultiSelectRecipientInput
+                  value={formData.recipient_ids}
+                  onChange={(value) => setFormData({ ...formData, recipient_ids: value })}
+                  placeholder="البحث عن المستلمين..."
                 />
                 <p className="text-sm text-gray-500">
-                  اختر المستلم الذي تريد إرسال السجل إليه
+                  اختر المستلمين الذين تريد إرسال السجل إليهم
                 </p>
               </div>
             )}
@@ -500,7 +517,7 @@ export const TransferRecordPage: React.FC = () => {
                 </Button>
                 <Button
                   type="submit"
-                  disabled={loading || !formData.transfer_status_code || !formData.transfer_notes.trim() || (isAdmin && !formData.recipient_id)}
+                  disabled={loading || !formData.transfer_status_code || !formData.transfer_notes.trim() || (isAdmin && formData.recipient_ids.length === 0)}
                   className="px-8 py-2 min-w-[140px] bg-gaza-green hover:bg-green-600 text-white border-0 shadow-sm hover:shadow-md transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {loading ? 'جاري الإرسال...' : (

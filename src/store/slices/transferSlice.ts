@@ -475,13 +475,18 @@ export const transferSlice = createSlice({
         state.error = null;
         state.fieldErrors = {};
       })
-      .addCase(createTransferAsync.fulfilled, (state, action: PayloadAction<ApiResponse<{ transfer: RecordTransfer }>>) => {
+      .addCase(createTransferAsync.fulfilled, (state, action: PayloadAction<ApiResponse<{ transfer: RecordTransfer | RecordTransfer[] }>>) => {
         state.loading = false;
         state.fieldErrors = {};
         if (action.payload.success && action.payload.data) {
-          // Add new transfer to the list
-          state.transfers.unshift(action.payload.data.transfer);
-          state.pagination.total += 1;
+          // Handle both single transfer and array of transfers (for multiple recipients)
+          const transfers = Array.isArray(action.payload.data.transfer) 
+            ? action.payload.data.transfer.filter(t => t != null) // Filter out any null/undefined transfers
+            : [action.payload.data.transfer].filter(t => t != null);
+          
+          // Add new transfers to the list
+          state.transfers.unshift(...transfers);
+          state.pagination.total += transfers.length;
         }
       })
       .addCase(createTransferAsync.rejected, (state, action) => {

@@ -621,11 +621,12 @@ export const TransfersPage: React.FC<TransfersPageProps> = ({ userRole }) => {
   }, [dispatch]);
 
   const transferStats = useMemo((): TransferStats => {
-    const total = transfers.length;
-    const pending = transfers.filter(t => !t.received_at && !t.is_replied && !t.completed_at).length;
-    const received = transfers.filter(t => t.received_at && !t.is_replied && !t.completed_at).length;
-    const replied = transfers.filter(t => t.is_replied && !t.completed_at).length;
-    const completed = transfers.filter(t => t.completed_at).length;
+    const validTransfers = transfers.filter(t => t != null); // Filter out null/undefined transfers
+    const total = validTransfers.length;
+    const pending = validTransfers.filter(t => !t.received_at && !t.is_replied && !t.completed_at).length;
+    const received = validTransfers.filter(t => t.received_at && !t.is_replied && !t.completed_at).length;
+    const replied = validTransfers.filter(t => t.is_replied && !t.completed_at).length;
+    const completed = validTransfers.filter(t => t.completed_at).length;
 
     return { total, pending, received, replied, completed };
   }, [transfers]);
@@ -858,7 +859,7 @@ export const TransfersPage: React.FC<TransfersPageProps> = ({ userRole }) => {
       <Card>
         <CardContent className="p-0">
           <EnhancedDataTable
-            data={transfers}
+            data={transfers.filter(t => t != null)}
             columns={columns}
             loading={loading}
             pagination={{
