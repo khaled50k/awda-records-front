@@ -1130,7 +1130,7 @@ export const MedicalRecordsPage: React.FC<MedicalRecordsPageProps> = ({ userRole
       ),
     },
     {
-      key: 'transfers.recipient.full_name',
+      key: 'latest_transfer_recipient',
       label: 'اسم المستلم',
       exportable: true,
       render: (_: unknown, record: MedicalRecord) => {
@@ -1607,7 +1607,7 @@ export const MedicalRecordsPage: React.FC<MedicalRecordsPageProps> = ({ userRole
             showFilters={true}
             showSearch={true}
             searchPlaceholder="البحث في السجلات الطبية..."
-            searchableColumns={['patient.full_name', 'status.label_ar', 'transfers.recipient.full_name', 'danger_level.label_ar', 'reviewed_party_user.full_name']}
+            searchableColumns={['patient.full_name', 'status.label_ar', 'danger_level.label_ar', 'reviewed_party_user.full_name']}
             title="السجلات الطبية"
             renderCustomFilter={renderCustomFilter}
             exportEnabled={true}

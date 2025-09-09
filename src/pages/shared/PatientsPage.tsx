@@ -590,7 +590,7 @@ const PatientDetailsModal: React.FC<PatientDetailsModalProps> = ({
                                       <div className="mt-1">
                                         {transfer.sender ? (
                                           <div className="space-y-1">
-                                            <p className="font-medium">{transfer.sender.full_name}</p>
+                                            <p className="font-medium">{transfer.sender?.full_name || 'غير محدد'}</p>
                                             <div className="flex items-center space-x-2 space-x-reverse">
 
 
@@ -606,7 +606,7 @@ const PatientDetailsModal: React.FC<PatientDetailsModalProps> = ({
                                       <div className="mt-1">
                                         {transfer.recipient ? (
                                           <div className="space-y-1">
-                                            <p className="font-medium">{transfer.recipient.full_name}</p>
+                                            <p className="font-medium">{transfer.recipient?.full_name || 'غير محدد'}</p>
                                             <div className="flex items-center space-x-2 space-x-reverse">
 
                                             </div>
