@@ -1148,25 +1148,25 @@ export const MedicalRecordsPage: React.FC<MedicalRecordsPageProps> = ({ userRole
         );
       },
     },
-    {
-      key: 'latest_transfer_recipient',
-      label: 'اسم المستلم',
-      exportable: true,
-      render: (_: unknown, record: MedicalRecord) => {
-        const latestTransfer = record.transfers && record.transfers.length > 0 
-          ? record.transfers[record.transfers.length - 1] 
-          : null;
+    // {
+    //   key: 'latest_transfer_recipient',
+    //   label: 'اسم المستلم',
+    //   exportable: true,
+    //   render: (_: unknown, record: MedicalRecord) => {
+    //     const latestTransfer = record.transfers && record.transfers.length > 0 
+    //       ? record.transfers[record.transfers.length - 1] 
+    //       : null;
         
-        return (
-          <div className="flex items-center space-x-2 space-x-reverse">
-            <User className="w-4 h-4 text-muted-foreground" />
-            <span className="font-medium">
-              {latestTransfer?.recipient?.full_name || '-'}
-            </span>
-          </div>
-        );
-      },
-    },
+    //     return (
+    //       <div className="flex items-center space-x-2 space-x-reverse">
+    //         <User className="w-4 h-4 text-muted-foreground" />
+    //         <span className="font-medium">
+    //           {latestTransfer?.recipient?.full_name || '-'}
+    //         </span>
+    //       </div>
+    //     );
+    //   },
+    // },
     {
       key: 'status.label_ar',
       label: 'حالة السجل',
