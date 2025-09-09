@@ -213,7 +213,7 @@ const UserDetailsModal: React.FC<UserDetailsModalProps> = ({
             <h3 className="text-lg font-semibold border-b pb-2 text-gray-800">تفاصيل الحساب</h3>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label className="text-sm font-medium text-gray-600">معرف المستخدم</Label>
+                <Label className="text-sm font-medium text-gray-600">رقم المستخدم</Label>
                 <div className="mt-1 p-2 bg-blue-50 rounded border border-blue-200">
                   <span className="font-mono font-bold text-blue-900">#{user.user_id}</span>
                 </div>

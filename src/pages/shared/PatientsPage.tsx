@@ -172,37 +172,7 @@ const PatientFormDialog: React.FC<FormDialogProps> = ({
 
 
 
-        {editingPatient && (
-          <div className="p-4 bg-muted rounded-lg mb-4">
-            <h4 className="font-medium mb-2">البيانات الحالية:</h4>
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <span className="text-muted-foreground">الاسم:</span>
-                <span className="font-medium mr-2">{editingPatient.full_name}</span>
-              </div>
-              <div>
-                <span className="text-muted-foreground">رقم الهوية:</span>
-                <span className="font-medium mr-2">{editingPatient.national_id}</span>
-              </div>
-              <div>
-                <span className="text-muted-foreground">الجنس:</span>
-                <span className="font-medium mr-2">
-                  {editingPatient.gender?.label_ar || editingPatient.gender_code}
-                </span>
-              </div>
-              <div>
-                <span className="text-muted-foreground">اسم المرفق:</span>
-                <span className="font-medium mr-2">
-                  {editingPatient.health_center?.label_ar || editingPatient.health_center_code || 'غير محدد'}
-                </span>
-              </div>
-              <div>
-                <span className="text-muted-foreground">تاريخ الإنشاء:</span>
-                <span className="font-medium mr-2">{formatDate(editingPatient.created_at)}</span>
-              </div>
-            </div>
-          </div>
-        )}
+
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
@@ -267,7 +237,7 @@ const PatientFormDialog: React.FC<FormDialogProps> = ({
           <div className="space-y-2">
             <Label htmlFor="health_center_code">اسم المرفق</Label>
             {healthCenters.length > 0 ? (
-              <Select value={form.health_center_code} onValueChange={(value) => setForm({ ...form, health_center_code: value })}>
+              <Select value={form.health_center_code || ''} onValueChange={(value) => setForm({ ...form, health_center_code: value })}>
                 <SelectTrigger className={fieldErrors.health_center_code ? 'border-red-500' : ''}>
                   <SelectValue placeholder="اختر اسم المرفق" />
                 </SelectTrigger>
@@ -369,7 +339,7 @@ const PatientDetailsModal: React.FC<PatientDetailsModalProps> = ({
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-green-600">{patient.patient_id}</div>
-              <div className="text-sm text-muted-foreground">معرف المريض</div>
+              <div className="text-sm text-muted-foreground">رقم المريض</div>
             </div>
           </div>
           {/* Medical Records Summary */}
@@ -464,7 +434,7 @@ const PatientDetailsModal: React.FC<PatientDetailsModalProps> = ({
                 <p className="text-lg">{formatDate(patient.updated_at)}</p>
               </div>
               <div>
-                <Label className="text-sm font-medium text-muted-foreground">معرف المريض</Label>
+                <Label className="text-sm font-medium text-muted-foreground">رقم المريض</Label>
                 <p className="text-lg font-mono">#{patient.patient_id}</p>
               </div>
             </div>
@@ -500,7 +470,7 @@ const PatientDetailsModal: React.FC<PatientDetailsModalProps> = ({
                       {/* Record Details */}
                       <div className="grid grid-cols-3 gap-4">
                         <div>
-                          <Label className="text-sm font-medium text-muted-foreground">معرف المريض</Label>
+                          <Label className="text-sm font-medium text-muted-foreground">رقم المريض</Label>
                           <p className="font-semibold">#{record.patient_id}</p>
                         </div>
 
@@ -918,6 +888,9 @@ export const PatientsPage: React.FC = () => {
         isOpen={isFormOpen}
         onOpenChange={(open) => {
           if (!open) {
+            // Clear form data and reset state when modal is closed
+            setFormData({ full_name: '', national_id: '', gender_code: '', health_center_code: '' });
+            setEditingPatient(null);
             dispatch(clearFieldErrors()); // Clear errors when modal is closed
           }
           setIsFormOpen(open);

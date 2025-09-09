@@ -198,7 +198,7 @@ export const ViewPatientPage: React.FC = () => {
               </div>
 
               <div className="space-y-2">
-                <p className="text-sm font-medium text-gray-600">معرف المريض</p>
+                <p className="text-sm font-medium text-gray-600">رقم المريض</p>
                 <p className="text-lg font-mono text-gray-900">#{patient.patient_id}</p>
               </div>
 
