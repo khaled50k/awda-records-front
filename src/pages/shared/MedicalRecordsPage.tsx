@@ -1005,8 +1005,8 @@ export const MedicalRecordsPage: React.FC<MedicalRecordsPageProps> = ({ userRole
     console.log('🚀 Initial data loading...');
     console.log('📊 Initial pagination state:', pagination);
     dispatch(getMedicalRecordsAsync({ page: 1, perPage: 100 }));
-    dispatch(getPatientsAsync({ page: 1, perPage: 100 })); // Fetch all patients for the select
-    dispatch(getUsersAsync({ page: 1, perPage: 100 })); // Fetch all users for the recipient search
+    // dispatch(getPatientsAsync({ page: 1, perPage: 100 })); // Fetch all patients for the select
+    // dispatch(getUsersAsync({ page: 1, perPage: 100 })); // Fetch all users for the recipient search
   }, [dispatch]);
 
   // Debug effect to monitor pagination changes
